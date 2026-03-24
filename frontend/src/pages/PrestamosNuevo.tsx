@@ -5,7 +5,7 @@ import { apiGet, apiPost } from '../services/api'
 import { usePrestamosStore } from '../stores/prestamosStore'
 import Alert from '../components/ui/Alert'
 import Spinner from '../components/ui/Spinner'
-import type { Cliente, PrestamoCalcularForm, TipoTasa, Periodicidad } from '../types'
+import type { Cliente, PrestamoCalcularForm } from '../types'
 import { format } from 'date-fns'
 
 interface PreviewCuota {

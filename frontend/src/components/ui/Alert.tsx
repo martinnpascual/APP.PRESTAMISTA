@@ -13,12 +13,13 @@ interface AlertProps {
   type?: AlertType
   message: string
   onClose?: () => void
+  className?: string
 }
 
-export default function Alert({ type = 'error', message, onClose }: AlertProps) {
+export default function Alert({ type = 'error', message, onClose, className = '' }: AlertProps) {
   const { container, icon: Icon } = styles[type]
   return (
-    <div className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${container}`} role="alert">
+    <div className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${container} ${className}`} role="alert">
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
       <span className="flex-1">{message}</span>
       {onClose && (
