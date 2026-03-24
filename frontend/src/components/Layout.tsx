@@ -61,6 +61,30 @@ export default function Layout() {
         .bot-link { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; text-decoration:none; font-size:10px; font-weight:500; color:#6b7280; transition:color .15s; }
         .bot-link.active { color:#a5b4fc; }
         .bot-icon { font-size:18px; line-height:1; }
+        /* ── SVG icon size fix (works without Tailwind CSS) ── */
+        svg { display:block; flex-shrink:0; overflow:hidden; }
+        svg.h-3,.h-3>svg { height:0.75rem!important; width:0.75rem!important; }
+        svg.h-3\\.5,.h-3\\.5>svg { height:0.875rem!important; width:0.875rem!important; }
+        svg.h-4,.h-4>svg { height:1rem!important; width:1rem!important; }
+        svg.h-5,.h-5>svg { height:1.25rem!important; width:1.25rem!important; }
+        svg.h-6,.h-6>svg { height:1.5rem!important; width:1.5rem!important; }
+        svg.h-8,.h-8>svg { height:2rem!important; width:2rem!important; }
+        svg.h-10,.h-10>svg { height:2.5rem!important; width:2.5rem!important; }
+        svg.w-3 { width:0.75rem!important; } svg.w-4 { width:1rem!important; }
+        svg.w-5 { width:1.25rem!important; } svg.w-6 { width:1.5rem!important; }
+        /* ── Tailwind color/bg utilities fallback ── */
+        .bg-blue-600 { background-color:#2563eb!important; }
+        .bg-blue-700 { background-color:#1d4ed8!important; }
+        .bg-green-500 { background-color:#22c55e!important; }
+        .bg-red-500   { background-color:#ef4444!important; }
+        .text-white   { color:#ffffff!important; }
+        .text-gray-900{ color:#111827!important; }
+        .text-gray-500{ color:#6b7280!important; }
+        .text-gray-400{ color:#9ca3af!important; }
+        .text-blue-600{ color:#2563eb!important; }
+        .text-red-600 { color:#dc2626!important; }
+        .text-green-600{color:#16a34a!important; }
+        a { color:inherit; text-decoration:none; }
       `}</style>
 
       <div className="app-wrap">
