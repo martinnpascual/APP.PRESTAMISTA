@@ -1,147 +1,101 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  BanknotesIcon,
-  UsersIcon,
-  ExclamationTriangleIcon,
-  ArrowTrendingUpIcon,
-} from '@heroicons/react/24/outline'
 import { apiGet } from '../services/api'
 import type { KPIs } from '../types'
-import Spinner from '../components/ui/Spinner'
-import Alert from '../components/ui/Alert'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 }
 
-interface StatCardProps {
-  label: string
-  value: string
-  icon: React.ElementType
-  color: string
-  to?: string
-}
-
-function StatCard({ label, value, icon: Icon, color, to }: StatCardProps) {
-  const content = (
-    <div className={`flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-shadow hover:shadow-md`}>
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}>
-        <Icon className="h-5 w-5 text-white" />
+function KpiCard({ label, value, sub, accent, to }: { label: string; value: string; sub?: string; accent: string; to?: string }) {
+  const inner = (
+    <div style={{background:'#1c1e27',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'18px 20px',transition:'border-color .2s',cursor:to?'pointer':'default'}}
+      onMouseEnter={e=>{if(to)(e.currentTarget as HTMLDivElement).style.borderColor='rgba(255,255,255,0.14)'}}
+      onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.borderColor='rgba(255,255,255,0.07)'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
+        <span style={{fontSize:'12px',fontWeight:500,color:'#6b7280',letterSpacing:'0.02em'}}>{label}</span>
+        <div style={{width:'7px',height:'7px',borderRadius:'50%',background:accent}}/>
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-gray-500">{label}</p>
-        <p className="mt-0.5 text-lg font-bold text-gray-900 tabular-nums">{value}</p>
-      </div>
+      <div style={{fontSize:'22px',fontWeight:800,color:'#e4e6eb',letterSpacing:'-0.02em',lineHeight:1}}>{value}</div>
+      {sub && <div style={{fontSize:'11px',color:'#6b7280',marginTop:'6px'}}>{sub}</div>}
     </div>
   )
-  return to ? <Link to={to}>{content}</Link> : <div>{content}</div>
+  return to ? <Link to={to} style={{textDecoration:'none'}}>{inner}</Link> : <>{inner}</>
+}
+
+function QuickBtn({ to, label, primary }: { to: string; label: string; primary?: boolean }) {
+  return (
+    <Link to={to} style={{
+      display:'flex',alignItems:'center',justifyContent:'center',
+      padding:'11px 16px',borderRadius:'10px',textDecoration:'none',
+      fontSize:'13px',fontWeight:600,transition:'background .15s',
+      background: primary ? '#6366f1' : 'rgba(255,255,255,0.05)',
+      color: primary ? 'white' : '#9ca3af',
+      border: primary ? 'none' : '1px solid rgba(255,255,255,0.08)',
+    }}
+    onMouseEnter={e=>{(e.currentTarget as HTMLAnchorElement).style.background=primary?'#4f46e5':'rgba(255,255,255,0.09)'}}
+    onMouseLeave={e=>{(e.currentTarget as HTMLAnchorElement).style.background=primary?'#6366f1':'rgba(255,255,255,0.05)'}}>
+      {label}
+    </Link>
+  )
 }
 
 export default function Dashboard() {
-  const [kpis, setKpis] = useState<KPIs | null>(null)
+  const [kpis,    setKpis]    = useState<KPIs | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error,   setError]   = useState<string | null>(null)
 
   useEffect(() => {
-    apiGet<KPIs>('/reportes/kpis')
-      .then(setKpis)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
+    apiGet<KPIs>('/reportes/kpis').then(setKpis).catch(e=>setError(e.message)).finally(()=>setLoading(false))
   }, [])
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Panel principal</h1>
-        <p className="text-sm text-gray-500">Resumen del negocio en tiempo real</p>
+    <div style={{maxWidth:'720px',margin:'0 auto',padding:'28px 20px',fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif"}}>
+
+      {/* Header */}
+      <div style={{marginBottom:'28px'}}>
+        <h1 style={{fontSize:'20px',fontWeight:800,color:'#e4e6eb',letterSpacing:'-0.02em',margin:0}}>Panel principal</h1>
+        <p style={{fontSize:'13px',color:'#6b7280',marginTop:'4px',fontWeight:400}}>Resumen del negocio en tiempo real</p>
       </div>
 
-      {error && <Alert message={error} className="mb-4" />}
-
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <Spinner size="lg" />
-        </div>
-      ) : kpis ? (
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="Capital prestado"
-            value={fmt(kpis.capital_total_prestado)}
-            icon={BanknotesIcon}
-            color="bg-blue-500"
-            to="/prestamos"
-          />
-          <StatCard
-            label="Saldo pendiente"
-            value={fmt(kpis.saldo_total_pendiente)}
-            icon={ArrowTrendingUpIcon}
-            color="bg-emerald-500"
-          />
-          <StatCard
-            label="Préstamos activos"
-            value={String(kpis.prestamos_activos)}
-            icon={UsersIcon}
-            color="bg-violet-500"
-            to="/prestamos"
-          />
-          <StatCard
-            label="Clientes en mora"
-            value={String(kpis.clientes_en_mora)}
-            icon={ExclamationTriangleIcon}
-            color="bg-red-500"
-            to="/cobros"
-          />
-          {kpis.clientes_en_mora > 0 && (
-            <div className="col-span-2">
-              <StatCard
-                label="Monto en mora"
-                value={fmt(kpis.monto_en_mora)}
-                icon={ExclamationTriangleIcon}
-                color="bg-red-600"
-                to="/cobros"
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="text-center text-sm text-gray-400">Sin datos</p>
+      {error && (
+        <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.18)',borderRadius:'10px',padding:'12px 14px',marginBottom:'20px',fontSize:'13px',color:'#fca5a5'}}>{error}</div>
       )}
 
-      {/* Accesos rápidos */}
-      <div className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Accesos rápidos</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            to="/cobros"
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-          >
-            <BanknotesIcon className="h-4 w-4" />
-            Cobros del día
-          </Link>
-          <Link
-            to="/prestamos/nuevo"
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50"
-          >
-            <ArrowTrendingUpIcon className="h-4 w-4" />
-            Nuevo préstamo
-          </Link>
-          <Link
-            to="/clientes/nuevo"
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50"
-          >
-            <UsersIcon className="h-4 w-4" />
-            Nuevo cliente
-          </Link>
-          <Link
-            to="/prestamos"
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50"
-          >
-            <BanknotesIcon className="h-4 w-4" />
-            Ver préstamos
-          </Link>
+      {loading ? (
+        <div style={{display:'flex',justifyContent:'center',padding:'48px 0'}}>
+          <div style={{width:'28px',height:'28px',border:'3px solid rgba(255,255,255,0.08)',borderTopColor:'#6366f1',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
-      </div>
+      ) : kpis ? (
+        <>
+          {/* KPI grid */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'10px'}}>
+            <KpiCard label="Capital prestado"   value={fmt(kpis.capital_total_prestado)}    accent="#6366f1" to="/prestamos"/>
+            <KpiCard label="Saldo pendiente"    value={fmt(kpis.saldo_total_pendiente)}     accent="#34d399"/>
+            <KpiCard label="Préstamos activos"  value={String(kpis.prestamos_activos)}      accent="#3b82f6" to="/prestamos" sub="préstamos vigentes"/>
+            <KpiCard label="Clientes en mora"   value={String(kpis.clientes_en_mora)}       accent="#f87171" to="/cobros"   sub={kpis.clientes_en_mora>0?'requieren atención':'todo al día'}/>
+          </div>
+          {kpis.monto_en_mora > 0 && (
+            <KpiCard label="Monto total en mora" value={fmt(kpis.monto_en_mora)} accent="#ef4444" to="/cobros"/>
+          )}
+
+          <div style={{height:'1px',background:'rgba(255,255,255,0.06)',margin:'24px 0'}}/>
+
+          {/* Quick access */}
+          <div style={{marginBottom:'16px'}}>
+            <p style={{fontSize:'12px',fontWeight:600,color:'#6b7280',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:'12px'}}>Accesos rápidos</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+              <QuickBtn to="/cobros"          label="Cobros del día"  primary/>
+              <QuickBtn to="/prestamos/nuevo" label="Nuevo préstamo"/>
+              <QuickBtn to="/clientes/nuevo"  label="Nuevo cliente"/>
+              <QuickBtn to="/prestamos"       label="Ver préstamos"/>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p style={{textAlign:'center',fontSize:'13px',color:'#6b7280',padding:'40px 0'}}>Sin datos disponibles</p>
+      )}
     </div>
   )
 }
