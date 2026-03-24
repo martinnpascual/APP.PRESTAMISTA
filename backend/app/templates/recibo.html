@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- CABECERA -->
+<div class="doc-header no-break">
+  <div class="brand">
+    {{ negocio.nombre_negocio }}
+    <small>Comprobante de Pago</small>
+  </div>
+  <div class="doc-meta">
+    <div class="doc-title">Recibo de Pago</div>
+    <div class="doc-number">N° {{ pago.id[:8].upper() }}</div>
+    <div style="margin-top:4px">Fecha: {{ fecha_pago_fmt }}</div>
+    <div>Moneda: {{ negocio.moneda }}</div>
+  </div>
+</div>
+
+<!-- MONTO DESTACADO -->
+<div class="highlight-box no-break">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div class="amount-label">Monto recibido</div>
+      <div class="amount">$ {{ "%.2f"|format(pago.monto) }}</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="amount-label">Forma de pago</div>
+      <div style="font-size: 12pt; font-weight: 700; color: #1e3a5f;">
+        {{ pago.metodo | upper }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEUDOR -->
+<div class="section no-break">
+  <div class="section-title">Datos del Pagador</div>
+  <div class="data-grid cols-3">
+    <div class="data-row">
+      <span class="data-label">Apellido y Nombre</span>
+      <span class="data-value">{{ cliente.nombre }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">DNI</span>
+      <span class="data-value">{{ cliente.dni }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Teléfono</span>
+      <span class="data-value">{{ cliente.telefono or '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- DETALLE DEL PAGO -->
+<div class="section no-break">
+  <div class="section-title">Detalle del Pago</div>
+  <div class="data-grid cols-3">
+    <div class="data-row">
+      <span class="data-label">Préstamo N°</span>
+      <span class="data-value">{{ prestamo_id[:8].upper() }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Cuota N°</span>
+      <span class="data-value">{{ cuota.numero }} / {{ cuota.total_cuotas }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Vencimiento Cuota</span>
+      <span class="data-value">{{ cuota.fecha_vencimiento }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Monto Total Cuota</span>
+      <span class="data-value">$ {{ "%.2f"|format(cuota.monto) }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Pagado Anteriormente</span>
+      <span class="data-value">$ {{ "%.2f"|format(cuota.monto_pagado_anterior) }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Saldo Restante</span>
+      <span class="data-value">$ {{ "%.2f"|format(saldo_restante) }}</span>
+    </div>
+    {% if cuota.recargo_mora and cuota.recargo_mora > 0 %}
+    <div class="data-row">
+      <span class="data-label">Recargo Mora</span>
+      <span class="data-value" style="color: #dc2626;">$ {{ "%.2f"|format(cuota.recargo_mora) }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Días de Mora</span>
+      <span class="data-value" style="color: #dc2626;">{{ cuota.dias_mora }} días</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ESTADO CUOTA -->
+<div class="section no-break">
+  <div class="section-title">Estado tras este Pago</div>
+  <div class="data-grid">
+    <div class="data-row">
+      <span class="data-label">Estado de la Cuota</span>
+      <span class="data-value">
+        {% if saldo_restante <= 0 %}
+          <span class="badge badge-pagada">PAGADA TOTAL</span>
+        {% else %}
+          <span class="badge badge-parcial">PAGO PARCIAL</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Registrado por</span>
+      <span class="data-value">{{ registrado_por.nombre or registrado_por.email }}</span>
+    </div>
+  </div>
+</div>
+
+{% if pago.notas %}
+<div class="section no-break">
+  <div class="section-title">Observaciones</div>
+  <p style="font-size: 9.5pt;">{{ pago.notas }}</p>
+</div>
+{% endif %}
+
+<!-- FIRMAS -->
+<div class="signature-section no-break" style="margin-top: 40px;">
+  <div>
+    <div style="height: 40px;"></div>
+    <div class="signature-line">
+      Firma del Pagador<br>
+      <strong>{{ cliente.nombre }}</strong><br>
+      DNI {{ cliente.dni }}
+    </div>
+  </div>
+  <div>
+    <div style="height: 40px;"></div>
+    <div class="signature-line">
+      Firma del Cobrador<br>
+      <strong>{{ registrado_por.nombre or negocio.nombre_negocio }}</strong><br>
+      &nbsp;
+    </div>
+  </div>
+</div>
+
+<div class="legal-notice">
+  Recibo N° {{ pago.id[:8].upper() }} — Emitido el {{ fecha_generacion }} por {{ negocio.nombre_negocio }}.
+  Este comprobante acredita el pago recibido. Conservar original.
+</div>
+
+{% endblock %}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+/* ── Configuración de página A4 ───────────────────────────────── */
+@page {
+  size: A4;
+  margin: 2cm 1.5cm 2.5cm 1.5cm;
+  @bottom-center {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 8pt;
+    color: #888;
+    font-family: Arial, sans-serif;
+  }
+}
+
+/* ── Reset y base ─────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #2d2d2d;
+  line-height: 1.45;
+  background: white;
+}
+
+/* ── Cabecera del documento ───────────────────────────────────── */
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2.5px solid #1e3a5f;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+
+.doc-header .brand {
+  font-size: 18pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  letter-spacing: -0.5px;
+}
+
+.doc-header .brand small {
+  display: block;
+  font-size: 8pt;
+  font-weight: 400;
+  color: #666;
+  letter-spacing: 0;
+}
+
+.doc-header .doc-meta {
+  text-align: right;
+  font-size: 8.5pt;
+  color: #555;
+}
+
+.doc-header .doc-meta .doc-title {
+  font-size: 12pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doc-header .doc-meta .doc-number {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #444;
+}
+
+/* ── Sección con título ──────────────────────────────────────── */
+.section {
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1e3a5f;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #ccd9e8;
+  padding-bottom: 3px;
+  margin-bottom: 8px;
+}
+
+/* ── Grids de datos ────────────────────────────────────────────── */
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 20px;
+}
+
+.data-grid.cols-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.data-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.data-label {
+  font-size: 7.5pt;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.data-value {
+  font-size: 10pt;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* ── Tabla ─────────────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-top: 8px;
+}
+
+thead tr {
+  background-color: #1e3a5f;
+  color: white;
+}
+
+thead th {
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 8.5pt;
+  letter-spacing: 0.3px;
+}
+
+thead th.right { text-align: right; }
+thead th.center { text-align: center; }
+
+tbody tr { border-bottom: 1px solid #e8edf2; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:nth-child(even) { background-color: #f7f9fb; }
+
+tbody td {
+  padding: 5px 8px;
+  vertical-align: middle;
+}
+
+tbody td.right { text-align: right; }
+tbody td.center { text-align: center; }
+
+tfoot tr { border-top: 2px solid #1e3a5f; }
+tfoot td {
+  padding: 6px 8px;
+  font-weight: 700;
+  font-size: 9.5pt;
+}
+tfoot td.right { text-align: right; }
+
+/* ── Badges de estado ─────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badge-pagada    { background: #d1fae5; color: #065f46; }
+.badge-pendiente { background: #fef3c7; color: #92400e; }
+.badge-mora      { background: #fee2e2; color: #991b1b; }
+.badge-parcial   { background: #fde68a; color: #78350f; }
+
+/* ── Destacado / resumen ──────────────────────────────────────── */
+.highlight-box {
+  background: #eef3f9;
+  border-left: 4px solid #1e3a5f;
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  margin: 12px 0;
+}
+
+.highlight-box .amount {
+  font-size: 20pt;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.highlight-box .amount-label {
+  font-size: 8pt;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* ── Firma ─────────────────────────────────────────────────────── */
+.signature-section {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.signature-line {
+  border-top: 1px solid #555;
+  padding-top: 5px;
+  text-align: center;
+  font-size: 8.5pt;
+  color: #555;
+}
+
+/* ── Pie de aviso legal ───────────────────────────────────────── */
+.legal-notice {
+  margin-top: 20px;
+  font-size: 7.5pt;
+  color: #999;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  text-align: justify;
+}
+
+/* ── Utilidades ────────────────────────────────────────────────── */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.bold { font-weight: 700; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.break-before { page-break-before: always; }
+.no-break { page-break-inside: avoid; }
+
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

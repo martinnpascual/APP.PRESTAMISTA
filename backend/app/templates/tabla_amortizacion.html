@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- CABECERA -->
+<div class="doc-header no-break">
+  <div class="brand">
+    {{ negocio.nombre_negocio }}
+    <small>Tabla de Amortización</small>
+  </div>
+  <div class="doc-meta">
+    <div class="doc-title">Tabla de Amortización</div>
+    <div class="doc-number">Préstamo # {{ prestamo.id[:8].upper() }}</div>
+    <div style="margin-top:4px">Generado: {{ fecha_generacion }}</div>
+    <div>Moneda: {{ negocio.moneda }}</div>
+  </div>
+</div>
+
+<!-- DATOS DEL PRÉSTAMO -->
+<div class="section no-break">
+  <div class="section-title">Datos del Préstamo</div>
+  <div class="data-grid cols-3">
+    <div class="data-row">
+      <span class="data-label">Cliente</span>
+      <span class="data-value">{{ cliente.nombre }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">DNI</span>
+      <span class="data-value">{{ cliente.dni }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Estado</span>
+      <span class="data-value">
+        {% if prestamo.estado == 'activo' %}
+          <span class="badge badge-pendiente">ACTIVO</span>
+        {% elif prestamo.estado == 'en_mora' %}
+          <span class="badge badge-mora">EN MORA</span>
+        {% elif prestamo.estado == 'cerrado' %}
+          <span class="badge badge-pagada">CERRADO</span>
+        {% else %}
+          <span class="badge badge-parcial">{{ prestamo.estado | upper }}</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Capital Original</span>
+      <span class="data-value">$ {{ "%.2f"|format(prestamo.monto) }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Tasa / Tipo</span>
+      <span class="data-value">{{ prestamo.tasa }}% {{ prestamo.tipo_tasa }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Periodicidad</span>
+      <span class="data-value">{{ prestamo.periodicidad | capitalize }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Fecha Inicio</span>
+      <span class="data-value">{{ prestamo.fecha_inicio }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">N° Cuotas</span>
+      <span class="data-value">{{ prestamo.n_cuotas }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Saldo Pendiente</span>
+      <span class="data-value">$ {{ "%.2f"|format(prestamo.saldo_pendiente) }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN FINANCIERO -->
+<div class="highlight-box no-break">
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+    <div>
+      <div class="amount-label">Capital prestado</div>
+      <div style="font-size: 12pt; font-weight: 700; color: #1e3a5f;">
+        $ {{ "%.2f"|format(totales.capital_total) }}
+      </div>
+    </div>
+    <div>
+      <div class="amount-label">Total a devolver</div>
+      <div style="font-size: 12pt; font-weight: 700; color: #1e3a5f;">
+        $ {{ "%.2f"|format(totales.total_a_devolver) }}
+      </div>
+    </div>
+    <div>
+      <div class="amount-label">Total pagado</div>
+      <div style="font-size: 12pt; font-weight: 700; color: #065f46;">
+        $ {{ "%.2f"|format(totales.total_pagado) }}
+      </div>
+    </div>
+    <div>
+      <div class="amount-label">Saldo pendiente</div>
+      <div style="font-size: 12pt; font-weight: 700; color: #991b1b;">
+        $ {{ "%.2f"|format(totales.saldo_pendiente) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLA DE CUOTAS -->
+<div class="section">
+  <div class="section-title">Detalle de Cuotas</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="center" style="width:6%">N°</th>
+        <th style="width:18%">Vencimiento</th>
+        <th class="right">Monto Cuota</th>
+        <th class="right">Pagado</th>
+        <th class="right">Recargo</th>
+        <th class="right">Saldo</th>
+        <th class="center" style="width:14%">Estado</th>
+        <th class="center" style="width:8%">Días</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuotas %}
+      <tr>
+        <td class="center">{{ c.numero }}</td>
+        <td>{{ c.fecha_vencimiento }}</td>
+        <td class="right bold">$ {{ "%.2f"|format(c.monto) }}</td>
+        <td class="right">$ {{ "%.2f"|format(c.monto_pagado) }}</td>
+        <td class="right"
+            {% if c.recargo_mora and c.recargo_mora > 0 %}style="color:#dc2626"{% endif %}>
+          {% if c.recargo_mora and c.recargo_mora > 0 %}
+            $ {{ "%.2f"|format(c.recargo_mora) }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="right">$ {{ "%.2f"|format(c.monto - c.monto_pagado) }}</td>
+        <td class="center">
+          {% if c.estado == 'pagada' %}
+            <span class="badge badge-pagada">PAGADA</span>
+          {% elif c.estado == 'mora' %}
+            <span class="badge badge-mora">MORA</span>
+          {% elif c.estado == 'pago_parcial' %}
+            <span class="badge badge-parcial">PARCIAL</span>
+          {% elif c.estado == 'condonada' %}
+            <span class="badge" style="background:#e0e7ff;color:#3730a3">COND.</span>
+          {% else %}
+            <span class="badge badge-pendiente">PEND.</span>
+          {% endif %}
+        </td>
+        <td class="center">
+          {% if c.dias_mora and c.dias_mora > 0 %}
+            <span style="color:#dc2626;font-weight:700">{{ c.dias_mora }}</span>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2" class="bold">TOTALES</td>
+        <td class="right bold">$ {{ "%.2f"|format(totales.total_a_devolver) }}</td>
+        <td class="right bold">$ {{ "%.2f"|format(totales.total_pagado) }}</td>
+        <td class="right bold">$ {{ "%.2f"|format(totales.total_recargo) }}</td>
+        <td class="right bold">$ {{ "%.2f"|format(totales.saldo_pendiente) }}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- PROGRESO DE PAGO -->
+{% set pct = ((totales.total_pagado / totales.total_a_devolver) * 100) if totales.total_a_devolver > 0 else 0 %}
+<div class="section no-break" style="margin-top: 14px;">
+  <div class="section-title">Progreso de Pago</div>
+  <div style="background: #e5e7eb; border-radius: 6px; height: 12px; margin: 6px 0;">
+    <div style="background: #16a34a; height: 12px; border-radius: 6px; width: {{ '%.1f'|format(pct) }}%; max-width:100%;"></div>
+  </div>
+  <div style="display: flex; justify-content: space-between; font-size: 8.5pt; color: #555; margin-top: 3px;">
+    <span>Pagado: {{ "%.1f"|format(pct) }}%</span>
+    <span>Cuotas pagadas: {{ totales.cuotas_pagadas }} / {{ prestamo.n_cuotas }}</span>
+    <span>Pendiente: {{ "%.1f"|format(100 - pct) }}%</span>
+  </div>
+</div>
+
+<div class="legal-notice">
+  Tabla generada el {{ fecha_generacion }} por {{ negocio.nombre_negocio }}.
+  Préstamo N° {{ prestamo.id[:8].upper() }}. Los valores en mora incluyen recargo al {{ fecha_generacion }}.
+  Este documento es solo informativo.
+</div>
+
+{% endblock %}

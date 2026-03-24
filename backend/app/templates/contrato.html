@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- CABECERA -->
+<div class="doc-header no-break">
+  <div class="brand">
+    {{ negocio.nombre_negocio }}
+    <small>Sistema de gestión de préstamos</small>
+  </div>
+  <div class="doc-meta">
+    <div class="doc-title">Contrato de Préstamo</div>
+    <div class="doc-number"># {{ prestamo.id[:8].upper() }}</div>
+    <div style="margin-top:4px">Fecha: {{ fecha_generacion }}</div>
+    <div>Moneda: {{ negocio.moneda }}</div>
+  </div>
+</div>
+
+<!-- PARTES -->
+<div class="section no-break">
+  <div class="section-title">Datos del Acreedor (Prestamista)</div>
+  <div class="data-grid">
+    <div class="data-row">
+      <span class="data-label">Razón Social</span>
+      <span class="data-value">{{ negocio.nombre_negocio }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Moneda</span>
+      <span class="data-value">{{ negocio.moneda }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="section no-break">
+  <div class="section-title">Datos del Deudor (Prestatario)</div>
+  <div class="data-grid cols-3">
+    <div class="data-row">
+      <span class="data-label">Apellido y Nombre</span>
+      <span class="data-value">{{ cliente.nombre }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">DNI</span>
+      <span class="data-value">{{ cliente.dni }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Teléfono</span>
+      <span class="data-value">{{ cliente.telefono or '—' }}</span>
+    </div>
+    <div class="data-row" style="grid-column: span 3">
+      <span class="data-label">Domicilio</span>
+      <span class="data-value">{{ cliente.direccion or '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- CONDICIONES DEL PRÉSTAMO -->
+<div class="section no-break">
+  <div class="section-title">Condiciones del Préstamo</div>
+  <div class="data-grid cols-3">
+    <div class="data-row">
+      <span class="data-label">Capital Prestado</span>
+      <span class="data-value">$ {{ "%.2f"|format(prestamo.monto) }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Tasa de Interés</span>
+      <span class="data-value">{{ prestamo.tasa }}% {{ prestamo.tipo_tasa }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Periodicidad</span>
+      <span class="data-value">{{ prestamo.periodicidad | capitalize }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">N° de Cuotas</span>
+      <span class="data-value">{{ prestamo.n_cuotas }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Fecha de Inicio</span>
+      <span class="data-value">{{ prestamo.fecha_inicio }}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Primera Cuota</span>
+      <span class="data-value">{{ cuotas[0].fecha_vencimiento if cuotas else '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN FINANCIERO -->
+<div class="highlight-box no-break">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div class="amount-label">Total a devolver</div>
+      <div class="amount">$ {{ "%.2f"|format(total_a_devolver) }}</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="amount-label">Cuota promedio</div>
+      <div class="amount" style="font-size: 15pt;">
+        $ {{ "%.2f"|format(cuota_promedio) }}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="amount-label">Interés total</div>
+      <div style="font-size: 13pt; font-weight: 700; color: #555;">
+        $ {{ "%.2f"|format(total_a_devolver - prestamo.monto) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABLA DE CUOTAS -->
+<div class="section">
+  <div class="section-title">Tabla de Pagos Acordados</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="center" style="width: 8%">N°</th>
+        <th style="width: 25%">Vencimiento</th>
+        <th class="right">Monto Cuota</th>
+        <th class="right">Capital</th>
+        <th class="right">Interés</th>
+        <th class="right">Saldo tras pago</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cuotas %}
+      <tr>
+        <td class="center">{{ c.numero }}</td>
+        <td>{{ c.fecha_vencimiento }}</td>
+        <td class="right bold">$ {{ "%.2f"|format(c.monto) }}</td>
+        <td class="right">$ {{ "%.2f"|format(c.capital) }}</td>
+        <td class="right">$ {{ "%.2f"|format(c.interes) }}</td>
+        <td class="right">$ {{ "%.2f"|format(c.saldo_tras_pago) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2" class="bold">TOTALES</td>
+        <td class="right bold">$ {{ "%.2f"|format(total_a_devolver) }}</td>
+        <td class="right">$ {{ "%.2f"|format(prestamo.monto) }}</td>
+        <td class="right">$ {{ "%.2f"|format(total_a_devolver - prestamo.monto) }}</td>
+        <td class="right">$ 0.00</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- CLÁUSULAS -->
+<div class="section mt-4 no-break">
+  <div class="section-title">Cláusulas</div>
+  <p style="font-size: 9pt; text-align: justify; margin-bottom: 6px;">
+    <strong>1. Obligación de pago:</strong> El deudor se compromete a abonar las cuotas
+    detalladas en la tabla precedente en las fechas indicadas, en la moneda acordada ({{ negocio.moneda }}).
+  </p>
+  <p style="font-size: 9pt; text-align: justify; margin-bottom: 6px;">
+    <strong>2. Mora:</strong> El incumplimiento de cualquier cuota en la fecha pactada generará
+    un recargo por mora equivalente a {{ negocio.tasa_mora_diaria }}% diario sobre el saldo impago,
+    con {{ negocio.dias_gracia }} días de gracia desde el vencimiento.
+  </p>
+  <p style="font-size: 9pt; text-align: justify; margin-bottom: 6px;">
+    <strong>3. Cancelación anticipada:</strong> El deudor podrá cancelar anticipadamente el préstamo,
+    abonando únicamente el capital pendiente sin intereses futuros.
+  </p>
+  <p style="font-size: 9pt; text-align: justify;">
+    <strong>4. Cobrador asignado:</strong> El pago deberá efectuarse al cobrador designado
+    o en el domicilio del acreedor, recibiendo comprobante por cada pago realizado.
+  </p>
+</div>
+
+<!-- FIRMAS -->
+<div class="signature-section no-break">
+  <div>
+    <div style="height: 40px;"></div>
+    <div class="signature-line">
+      Firma del Deudor<br>
+      <strong>{{ cliente.nombre }}</strong><br>
+      DNI {{ cliente.dni }}
+    </div>
+  </div>
+  <div>
+    <div style="height: 40px;"></div>
+    <div class="signature-line">
+      Firma del Acreedor<br>
+      <strong>{{ negocio.nombre_negocio }}</strong><br>
+      &nbsp;
+    </div>
+  </div>
+</div>
+
+<div class="legal-notice">
+  Documento generado el {{ fecha_generacion }} por {{ negocio.nombre_negocio }}.
+  Contrato N° {{ prestamo.id[:8].upper() }}. Este documento tiene validez como constancia de
+  las condiciones acordadas entre las partes. Conservar copia.
+</div>
+
+{% endblock %}
