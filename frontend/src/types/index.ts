@@ -28,6 +28,22 @@ export type TipoDocumento =
   | 'tabla_amortizacion'
   | 'reporte_cartera'
 
+export interface Documento {
+  id: string
+  tipo: TipoDocumento
+  storage_path: string
+  created_at: string
+  profiles?: { nombre: string }
+}
+
+export interface GenerarDocumentoOut {
+  documento_id: string
+  tipo: TipoDocumento
+  url_firmada: string
+  expira_en_segundos: number
+  filename: string
+}
+
 export type CanalNotif = 'telegram' | 'email'
 
 export type MetodoPago = 'efectivo' | 'transferencia' | 'otro'

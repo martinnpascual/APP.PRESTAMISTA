@@ -23,12 +23,27 @@ const ROL_LABELS: Record<string, { label: string; color: string; Icon: typeof Us
 
 const ZONAS = ['Zona Norte', 'Zona Sur', 'Zona Centro', 'Zona Este', 'Zona Oeste']
 
+interface LogEntry {
+  id: string
+  usuario_id: string | null
+  accion: string
+  tabla: string | null
+  registro_id: string | null
+  created_at: string
+  profiles?: { nombre: string; email: string }
+}
+
 export default function Usuarios() {
   const { user: authUser } = useAuthStore()
+  const [tab, setTab] = useState<'usuarios' | 'logs' | 'backups'>('usuarios')
   const [usuarios, setUsuarios] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [okMsg, setOkMsg] = useState<string | null>(null)
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+  const [backups, setBackups] = useState<string[]>([])
+  const [backingUp, setBackingUp] = useState(false)
 
   // Modal nuevo usuario
   const [modalNuevo, setModalNuevo] = useState(false)
@@ -56,6 +71,45 @@ export default function Usuarios() {
   }
 
   useEffect(() => { cargar() }, [])
+
+  const cargarLogs = async () => {
+    setLoadingLogs(true)
+    try {
+      const data = await apiGet<LogEntry[]>('/usuarios/audit-log')
+      setLogs(data)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  const cargarBackups = async () => {
+    try {
+      const data = await apiGet<string[]>('/usuarios/admin/backup')
+      setBackups(data)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
+  const ejecutarBackup = async () => {
+    setBackingUp(true)
+    try {
+      await apiPost('/usuarios/admin/backup', {})
+      setOkMsg('Backup iniciado correctamente')
+      cargarBackups()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'logs') cargarLogs()
+    else if (tab === 'backups') cargarBackups()
+  }, [tab])
 
   const crearUsuario = async () => {
     if (!formNuevo.nombre || !formNuevo.email || !formNuevo.password) return
@@ -119,24 +173,94 @@ export default function Usuarios() {
     <div className="mx-auto max-w-3xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Usuarios</h1>
+          <h1 className="text-xl font-bold text-gray-900">Administración</h1>
           <p className="text-xs text-gray-500">{usuarios.length} usuarios registrados</p>
         </div>
-        <button
-          onClick={() => setModalNuevo(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700"
-        >
-          <UserPlusIcon className="h-4 w-4" />
-          Nuevo
-        </button>
+        {tab === 'usuarios' && (
+          <button
+            onClick={() => setModalNuevo(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700"
+          >
+            <UserPlusIcon className="h-4 w-4" />
+            Nuevo
+          </button>
+        )}
+        {tab === 'backups' && (
+          <button
+            onClick={ejecutarBackup}
+            disabled={backingUp}
+            className="flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-60"
+          >
+            {backingUp ? 'Ejecutando...' : '💾 Backup ahora'}
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4 flex gap-2 border-b border-gray-100 pb-2">
+        {(['usuarios', 'logs', 'backups'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+              tab === t ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:text-gray-800'
+            }`}>
+            {t === 'usuarios' ? '👤 Usuarios' : t === 'logs' ? '📋 Logs del sistema' : '💾 Backups'}
+          </button>
+        ))}
       </div>
 
       {okMsg && <Alert type="success" message={okMsg} onClose={() => setOkMsg(null)} className="mb-4" />}
       {error && <Alert message={error} onClose={() => setError(null)} className="mb-4" />}
 
-      {loading ? (
+      {/* Logs tab */}
+      {tab === 'logs' && (
+        <div>
+          {loadingLogs ? (
+            <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+          ) : (
+            <div className="space-y-2">
+              {logs.map(log => (
+                <div key={log.id} className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-700">{log.accion}</span>
+                      {log.tabla && <span className="ml-2 text-xs text-gray-500">{log.tabla}</span>}
+                      {log.registro_id && <span className="ml-1 text-[11px] text-gray-400">(#{log.registro_id.slice(0, 8)})</span>}
+                    </div>
+                    <span className="text-[11px] text-gray-400">{new Date(log.created_at).toLocaleString('es-AR')}</span>
+                  </div>
+                  {log.profiles && (
+                    <p className="mt-1 text-xs text-gray-400">por {log.profiles.nombre ?? log.profiles.email}</p>
+                  )}
+                </div>
+              ))}
+              {logs.length === 0 && <p className="py-8 text-center text-sm text-gray-400">Sin registros de auditoría</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Backups tab */}
+      {tab === 'backups' && (
+        <div>
+          <p className="mb-4 text-sm text-gray-500">Backups automáticos: domingos a las 02:00 AM. También podés ejecutar uno manual.</p>
+          {backups.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-400">Sin backups disponibles</p>
+          ) : (
+            <div className="space-y-2">
+              {backups.map((b, i) => (
+                <div key={i} className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 flex items-center gap-3">
+                  <span className="text-lg">💾</span>
+                  <span className="flex-1 text-sm text-gray-700 font-mono">{b}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'usuarios' && loading ? (
         <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-      ) : (
+      ) : tab === 'usuarios' && (
         <div className="space-y-2">
           {usuarios.map((u) => {
             const rolInfo = ROL_LABELS[u.rol] || ROL_LABELS.solo_lectura

@@ -8,9 +8,10 @@ import {
   XCircleIcon,
   ClockIcon,
   ChatBubbleLeftIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline'
 import { apiGet, apiPost } from '../services/api'
-import type { CuotaCobro } from '../types'
+import type { CuotaCobro, GenerarDocumentoOut } from '../types'
 import Spinner from '../components/ui/Spinner'
 import Alert from '../components/ui/Alert'
 import Modal from '../components/ui/Modal'
@@ -49,6 +50,8 @@ export default function CobrosHoy() {
   const [selected, setSelected] = useState<CuotaCobro | null>(null)
   const [pagando, setPagando] = useState(false)
   const [pagoOk, setPagoOk] = useState<string | null>(null)
+  const [ultimoPagoId, setUltimoPagoId] = useState<string | null>(null)  // para generar recibo
+  const [genRecibo, setGenRecibo] = useState(false)
 
   // Visita modal
   const [visitaTarget, setVisitaTarget] = useState<CuotaCobro | null>(null)
@@ -82,7 +85,8 @@ export default function CobrosHoy() {
     if (!selected) return
     setPagando(true)
     try {
-      await apiPost(`/cobros/${selected.cuota_id}/pagar`, { metodo: 'efectivo' })
+      const pago = await apiPost<{ id: string }>(`/cobros/${selected.cuota_id}/pagar`, { metodo: 'efectivo' })
+      setUltimoPagoId(pago.id)
       setPagoOk(`Cobro registrado: ${fmt(calcTotal(selected))}`)
       setSelected(null)
       cargar(tab)
@@ -90,6 +94,19 @@ export default function CobrosHoy() {
       setError((e as Error).message)
     } finally {
       setPagando(false)
+    }
+  }
+
+  const generarReciboUltimoPago = async () => {
+    if (!ultimoPagoId) return
+    setGenRecibo(true)
+    try {
+      const r = await apiPost<GenerarDocumentoOut>(`/documentos/recibo/${ultimoPagoId}`)
+      window.open(r.url_firmada, '_blank')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setGenRecibo(false)
     }
   }
 
@@ -120,14 +137,50 @@ export default function CobrosHoy() {
     return { ...acc, [z]: [...(acc[z] ?? []), c] }
   }, {})
 
+  const imprimirLista = () => {
+    const fecha = format(new Date(), "EEEE d 'de' MMMM yyyy", { locale: es })
+    const html = `
+      <html><head><title>Cobros del día - ${fecha}</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
+        h1 { font-size: 16px; margin-bottom: 4px; }
+        p { margin: 2px 0 12px; color: #666; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f3f4f6; padding: 6px 8px; text-align: left; font-size: 11px; }
+        td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
+        .zona { background: #f9fafb; font-weight: bold; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+        @media print { body { margin: 0; } }
+      </style></head><body>
+      <h1>Lista de Cobros</h1><p>${fecha} — ${cobros.length} cuotas</p>
+      <table><thead><tr><th>Cliente</th><th>Zona</th><th>Cuota</th><th>Monto</th><th>Mora</th><th>Cobrado ✓</th></tr></thead><tbody>
+      ${cobrosFiltrados.map(c => `
+        <tr>
+          <td>${c.cliente_nombre}</td>
+          <td>${c.zona ?? '—'}</td>
+          <td>#${c.numero} · ${new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-AR')}</td>
+          <td>$ ${(c.total_a_cobrar ?? (c.monto - c.monto_pagado + (c.recargo_mora ?? 0))).toLocaleString('es-AR')}</td>
+          <td>${(c.recargo_mora ?? 0) > 0 ? '$ ' + Number(c.recargo_mora).toLocaleString('es-AR') : '—'}</td>
+          <td></td>
+        </tr>`).join('')}
+      </tbody></table></body></html>`
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(html); w.document.close(); w.print() }
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Cobros</h1>
-        <p className="text-xs text-gray-500">
-          {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · {cobros.length} cuotas
-        </p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Cobros</h1>
+          <p className="text-xs text-gray-500">
+            {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · {cobros.length} cuotas
+          </p>
+        </div>
+        <button onClick={imprimirLista} title="Imprimir lista del día"
+          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+          🖨️ Imprimir
+        </button>
       </div>
 
       {/* Resumen cobrador */}
@@ -161,7 +214,22 @@ export default function CobrosHoy() {
       )}
 
       {pagoOk && (
-        <Alert type="success" message={pagoOk} onClose={() => setPagoOk(null)} className="mb-4" />
+        <div className="mb-4 flex items-center justify-between rounded-xl bg-green-50 px-4 py-3 ring-1 ring-green-200">
+          <p className="text-sm font-medium text-green-800">✅ {pagoOk}</p>
+          <div className="flex items-center gap-2">
+            {ultimoPagoId && (
+              <button
+                onClick={generarReciboUltimoPago}
+                disabled={genRecibo}
+                className="flex items-center gap-1 rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                {genRecibo ? <Spinner size="sm" className="border-white border-t-green-200" /> : <DocumentArrowDownIcon className="h-3.5 w-3.5" />}
+                Recibo
+              </button>
+            )}
+            <button onClick={() => { setPagoOk(null); setUltimoPagoId(null) }} className="text-green-600 hover:text-green-800 text-xs">✕</button>
+          </div>
+        </div>
       )}
       {error && <Alert message={error} onClose={() => setError(null)} className="mb-4" />}
 

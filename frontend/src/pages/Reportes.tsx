@@ -18,7 +18,7 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 }
 
-type Tab = 'kpis' | 'cartera' | 'recaudacion' | 'mora'
+type Tab = 'kpis' | 'cartera' | 'recaudacion' | 'mora' | 'historial'
 
 interface KPIsExtended {
   capital_total_prestado: number
@@ -73,6 +73,16 @@ interface MoraData {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CarteraItem = any
 
+interface HistorialPago {
+  id: string
+  monto: number
+  fecha_pago: string
+  metodo: string
+  cuotas?: { numero: number; fecha_vencimiento: string }
+  clientes?: { nombre: string; zona?: string }
+  profiles?: { nombre: string }
+}
+
 export default function Reportes() {
   const [tab, setTab] = useState<Tab>('kpis')
   const [loading, setLoading] = useState(false)
@@ -83,6 +93,8 @@ export default function Reportes() {
   const [recaudacion, setRecaudacion] = useState<RecaudacionData | null>(null)
   const [mora, setMora] = useState<MoraData | null>(null)
   const [agrupacion, setAgrupacion] = useState<'dia' | 'semana' | 'mes'>('semana')
+  const [historial, setHistorial] = useState<HistorialPago[]>([])
+  const [historialFecha, setHistorialFecha] = useState(new Date().toISOString().split('T')[0])
 
   const cargarTab = async (t: Tab) => {
     setLoading(true)
@@ -100,6 +112,9 @@ export default function Reportes() {
       } else if (t === 'mora') {
         const data = await apiGet<MoraData>('/reportes/mora')
         setMora(data)
+      } else if (t === 'historial') {
+        const data = await apiGet<HistorialPago[]>(`/pagos/historial/dia?fecha=${historialFecha}`)
+        setHistorial(data)
       }
     } catch (e) {
       setError((e as Error).message)
@@ -112,6 +127,9 @@ export default function Reportes() {
   useEffect(() => {
     if (tab === 'recaudacion') cargarTab('recaudacion')
   }, [agrupacion])
+  useEffect(() => {
+    if (tab === 'historial') cargarTab('historial')
+  }, [historialFecha])
 
   const descargarCSV = async (tipo: 'cartera' | 'recaudacion' | 'mora') => {
     try {
@@ -141,6 +159,7 @@ export default function Reportes() {
     { id: 'cartera', label: 'Cartera', icon: UsersIcon },
     { id: 'recaudacion', label: 'Recaudación', icon: BanknotesIcon },
     { id: 'mora', label: 'Mora', icon: ExclamationTriangleIcon },
+    { id: 'historial', label: 'Historial', icon: DocumentTextIcon },
   ]
 
   return (
@@ -166,7 +185,7 @@ export default function Reportes() {
       {error && <Alert message={error} onClose={() => setError(null)} className="mb-4" />}
 
       {/* Tabs */}
-      <div className="mb-4 grid grid-cols-4 gap-1 rounded-xl bg-gray-100 p-1">
+      <div className="mb-4 grid grid-cols-5 gap-1 rounded-xl bg-gray-100 p-1">
         {tabs.map((t) => {
           const Icon = t.icon
           return (
@@ -300,6 +319,53 @@ export default function Reportes() {
                 ))}
                 {recaudacion.periodos.length === 0 && (
                   <p className="py-8 text-center text-sm text-gray-400">Sin pagos en el período</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Historial del día */}
+          {tab === 'historial' && (
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <input
+                  type="date"
+                  value={historialFecha}
+                  onChange={e => { setHistorialFecha(e.target.value); }}
+                  className="field-input max-w-[160px]"
+                />
+                <button onClick={() => cargarTab('historial')}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                  Ver
+                </button>
+                <span className="text-sm text-gray-500">{historial.length} pagos</span>
+                <span className="text-sm font-bold text-green-700">
+                  Total: {fmt(historial.reduce((s, p) => s + p.monto, 0))}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {historial.map(p => (
+                  <div key={p.id} className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{p.clientes?.nombre ?? '—'}</p>
+                      <p className="text-xs text-gray-400">
+                        {p.clientes?.zona ?? ''} · Cuota #{p.cuotas?.numero}
+                        {p.profiles?.nombre ? ` · ${p.profiles.nombre}` : ''}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-green-700">{fmt(p.monto)}</p>
+                      <p className="text-xs text-gray-400">
+                        {p.metodo} · {new Date(p.fecha_pago).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {historial.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
+                    <BanknotesIcon className="h-10 w-10" />
+                    <p className="text-sm font-medium">Sin pagos registrados para esta fecha</p>
+                  </div>
                 )}
               </div>
             </div>

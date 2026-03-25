@@ -30,9 +30,10 @@ class Settings(BaseSettings):
     # --- n8n ---
     N8N_WEBHOOK_URL: str = ""
 
-    # --- Telegram Bot (solo al prestamista) ---
+    # --- Telegram Bot ---
     TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_CHAT_ID: str = ""
+    TELEGRAM_CHAT_ID: str = ""          # Chat ID del prestamista (notificaciones del negocio)
+    TELEGRAM_WEBHOOK_SECRET: str = ""   # Token de validación de webhook (elegir string aleatorio)
 
     # --- Email SMTP ---
     SMTP_HOST: str = "smtp.gmail.com"

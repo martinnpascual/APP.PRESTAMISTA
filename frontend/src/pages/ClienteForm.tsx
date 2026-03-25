@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { useClientesStore } from '../stores/clientesStore'
 import Alert from '../components/ui/Alert'
 import Spinner from '../components/ui/Spinner'
 import type { ClienteForm as FormData } from '../types'
+import { supabase } from '../lib/supabase'
 
 const ZONAS = ['Zona Norte', 'Zona Sur', 'Zona Este', 'Zona Oeste', 'Centro']
 
@@ -19,6 +20,12 @@ export default function ClienteForm() {
   })
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Foto
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [uploadingFoto, setUploadingFoto] = useState(false)
 
   useEffect(() => {
     if (isEdit && id) fetchCliente(id)
@@ -40,6 +47,32 @@ export default function ClienteForm() {
   const set = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
 
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoFile(file)
+    const reader = new FileReader()
+    reader.onload = ev => setFotoPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const uploadFoto = async (clienteId: string) => {
+    if (!fotoFile) return
+    setUploadingFoto(true)
+    try {
+      const ext = fotoFile.name.split('.').pop()
+      const path = `clientes/${clienteId}/foto.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('documentos')
+        .upload(path, fotoFile, { upsert: true, contentType: fotoFile.type })
+      if (upErr) console.warn('Error subiendo foto:', upErr.message)
+    } catch (e) {
+      console.warn('Upload foto error:', e)
+    } finally {
+      setUploadingFoto(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -47,9 +80,11 @@ export default function ClienteForm() {
     try {
       if (isEdit && id) {
         await actualizarCliente(id, form)
+        if (fotoFile) await uploadFoto(id)
         navigate(`/clientes/${id}`)
       } else {
         const c = await crearCliente(form)
+        if (fotoFile) await uploadFoto(c.id)
         navigate(`/clientes/${c.id}`)
       }
     } catch (err) {
@@ -123,16 +158,43 @@ export default function ClienteForm() {
           </div>
         </div>
 
+        {/* Foto / DNI */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Foto / DNI (opcional)
+          </h2>
+          <div className="flex items-center gap-4">
+            {fotoPreview ? (
+              <img src={fotoPreview} alt="preview" className="h-20 w-20 rounded-xl object-cover ring-1 ring-gray-200" />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-gray-200 text-3xl">
+                📷
+              </div>
+            )}
+            <div>
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {fotoFile ? 'Cambiar foto' : 'Subir foto'}
+              </button>
+              {fotoFile && (
+                <p className="mt-1 text-xs text-gray-400">{fotoFile.name}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-400">JPG, PNG hasta 5 MB</p>
+            </div>
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFotoChange} />
+        </div>
+
         {/* Acciones */}
         <div className="flex gap-3">
           <button type="button" onClick={() => navigate(-1)}
             className="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
             Cancelar
           </button>
-          <button type="submit" disabled={saving}
+          <button type="submit" disabled={saving || uploadingFoto}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-            {saving && <Spinner size="sm" className="border-white border-t-blue-200" />}
-            {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear cliente'}
+            {(saving || uploadingFoto) && <Spinner size="sm" className="border-white border-t-blue-200" />}
+            {saving ? 'Guardando...' : uploadingFoto ? 'Subiendo foto...' : isEdit ? 'Guardar cambios' : 'Crear cliente'}
           </button>
         </div>
       </form>

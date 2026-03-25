@@ -1,5 +1,5 @@
 {
-  "name": "prestamos.app — Notificaciones",
+  "name": "prestamos.app — Notificaciones + Telegram Bot",
   "nodes": [
     {
       "parameters": {
@@ -9,11 +9,11 @@
         "options": {}
       },
       "id": "webhook-entry",
-      "name": "Webhook",
+      "name": "Webhook Notificaciones",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
-      "webhookId": "prestamos-notificaciones"
+      "position": [200, 400],
+      "webhookId": "prestamos-notif-main"
     },
     {
       "parameters": {
@@ -23,13 +23,7 @@
               "conditions": {
                 "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
                 "combinator": "and",
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.body.tipo }}",
-                    "rightValue": "mora",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "mora", "operator": { "type": "string", "operation": "equals" } }]
               },
               "renameOutput": true,
               "outputKey": "mora"
@@ -38,13 +32,7 @@
               "conditions": {
                 "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
                 "combinator": "and",
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.body.tipo }}",
-                    "rightValue": "pago",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "pago", "operator": { "type": "string", "operation": "equals" } }]
               },
               "renameOutput": true,
               "outputKey": "pago"
@@ -53,13 +41,7 @@
               "conditions": {
                 "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
                 "combinator": "and",
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.body.tipo }}",
-                    "rightValue": "cierre_dia",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "cierre_dia", "operator": { "type": "string", "operation": "equals" } }]
               },
               "renameOutput": true,
               "outputKey": "cierre_dia"
@@ -68,173 +50,225 @@
               "conditions": {
                 "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
                 "combinator": "and",
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.body.tipo }}",
-                    "rightValue": "alerta_vencimiento",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "alerta_vencimiento", "operator": { "type": "string", "operation": "equals" } }]
               },
               "renameOutput": true,
               "outputKey": "alerta_vencimiento"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "pago_cliente", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "pago_cliente"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "vencimiento_cliente", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "vencimiento_cliente"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "refinanciacion", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "refinanciacion"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.body.tipo }}", "rightValue": "cambio_config", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "cambio_config"
             }
           ]
         },
-        "fallbackOutput": "none",
-        "looseTypeValidation": true,
         "options": {}
       },
       "id": "router",
-      "name": "Router por tipo",
+      "name": "Router por Tipo",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [460, 300]
+      "position": [440, 400]
     },
     {
       "parameters": {
-        "jsCode": "const d = $json.body.datos;\nreturn [{ json: {\n  text: `⚠️ <b>MORA DETECTADA</b>\\n\\n👤 ${d.cliente}\\n💰 Saldo: $ ${d.monto?.toLocaleString('es-AR')}\\n📅 Días en mora: ${d.dias_mora}\\n📍 Zona: ${d.zona || '—'}`,\n  parse_mode: 'HTML'\n}}];"
+        "jsCode": "const d = $input.item.json.body.datos;\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `⚠️ <b>MORA DETECTADA</b>\\n\\n👤 ${d.cliente}\\n💰 Saldo: $ ${Number(d.monto).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n📅 Días en mora: ${d.dias_mora}\\n📍 Zona: ${d.zona || '—'}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
       "id": "format-mora",
-      "name": "Formatear mora",
+      "name": "Formato Mora",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 160]
+      "position": [680, 100]
     },
     {
       "parameters": {
-        "jsCode": "const d = $json.body.datos;\nreturn [{ json: {\n  text: `✅ <b>PAGO REGISTRADO</b>\\n\\n👤 ${d.cliente}\\n💰 Monto: $ ${d.monto?.toLocaleString('es-AR')}\\n💳 Método: ${d.metodo}`,\n  parse_mode: 'HTML'\n}}];"
+        "jsCode": "const d = $input.item.json.body.datos;\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `✅ <b>PAGO REGISTRADO</b>\\n\\n👤 ${d.cliente}\\n💰 Monto: $ ${Number(d.monto).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n💳 Método: ${d.metodo || 'efectivo'}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
       "id": "format-pago",
-      "name": "Formatear pago",
+      "name": "Formato Pago",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 280]
+      "position": [680, 260]
     },
     {
       "parameters": {
-        "jsCode": "const d = $json.body.datos;\nreturn [{ json: {\n  text: `📊 <b>CIERRE DEL DÍA</b>\\n\\n✅ Cobrado hoy: $ ${d.total_cobrado?.toLocaleString('es-AR')}\\n⏳ Cuotas pendientes: ${d.pendientes}\\n🔴 En mora: ${d.en_mora}\\n💸 Monto pendiente: $ ${d.monto_pendiente?.toLocaleString('es-AR')}`,\n  parse_mode: 'HTML'\n}}];"
+        "jsCode": "const d = $input.item.json.body.datos;\nconst fecha = new Date().toLocaleDateString('es-AR');\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `📊 <b>CIERRE DEL DÍA — ${fecha}</b>\\n\\n✅ Cobrado hoy: $ ${Number(d.total_cobrado).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n⏳ Cuotas pendientes: ${d.pendientes}\\n🔴 En mora: ${d.en_mora || 0}\\n💸 Monto pendiente: $ ${Number(d.monto_pendiente || 0).toLocaleString('es-AR', {minimumFractionDigits:2})}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
       "id": "format-cierre",
-      "name": "Formatear cierre",
+      "name": "Formato Cierre Día",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 400]
+      "position": [680, 420]
     },
     {
       "parameters": {
-        "jsCode": "const d = $json.body.datos;\nreturn [{ json: {\n  text: `📋 <b>COBROS PARA MAÑANA</b>\\n\\nTotal cuotas: ${d.cantidad}\\nMonto total: $ ${d.total?.toLocaleString('es-AR')}`,\n  parse_mode: 'HTML'\n}}];"
+        "jsCode": "const d = $input.item.json.body.datos;\nconst cuotas = (d.cuotas || []).slice(0, 8);\nconst lista = cuotas.map(c => `  • ${c.cliente_nombre || '—'} — $ ${Number((c.monto||0)-(c.monto_pagado||0)).toLocaleString('es-AR', {minimumFractionDigits:2})}`).join('\\n');\nconst mas = d.cantidad > 8 ? `\\n  ...y ${d.cantidad - 8} más` : '';\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `📋 <b>COBROS PARA MAÑANA</b>\\n\\nTotal cuotas: ${d.cantidad}\\nMonto total: $ ${Number(d.total).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n\\n${lista}${mas}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
-      "id": "format-alerta",
-      "name": "Formatear alerta",
+      "id": "format-alertas",
+      "name": "Formato Alertas D-1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 520]
+      "position": [680, 580]
     },
     {
       "parameters": {
-        "resource": "message",
-        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
-        "text": "={{ $json.text }}",
-        "additionalFields": {
-          "parse_mode": "HTML"
-        }
+        "jsCode": "// Notificación al CLIENTE: confirmación de pago\nconst d = $input.item.json.body.datos;\nif (!d.cliente_chat_id) return [];\nreturn [{\n  json: {\n    chat_id: d.cliente_chat_id,\n    text: `✅ <b>Pago confirmado</b>\\n\\nHola <b>${d.cliente_nombre}</b>:\\n💰 Monto: $ ${Number(d.monto).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n📄 Cuota #${d.cuota_numero}\\n📊 Saldo restante: $ ${Number(d.saldo_restante || 0).toLocaleString('es-AR', {minimumFractionDigits:2})}${d.saldo_restante <= 0 ? '\\n\\n🎉 ¡Préstamo cancelado! Gracias.' : ''}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
-      "id": "telegram-mora",
-      "name": "Telegram mora",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [940, 160],
-      "credentials": { "telegramApi": { "id": "telegram-creds", "name": "Telegram Bot" } }
+      "id": "format-pago-cliente",
+      "name": "Formato Pago (cliente)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 740]
     },
     {
       "parameters": {
-        "resource": "message",
-        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
-        "text": "={{ $json.text }}",
-        "additionalFields": {
-          "parse_mode": "HTML"
-        }
+        "jsCode": "// Notificación al CLIENTE: cuota vence mañana\nconst d = $input.item.json.body.datos;\nif (!d.cliente_chat_id) return [];\nreturn [{\n  json: {\n    chat_id: d.cliente_chat_id,\n    text: `📅 <b>Tu cuota vence mañana</b>\\n\\nHola <b>${d.cliente_nombre}</b>:\\nCuota #${d.cuota_numero} vence el <b>${d.fecha_vencimiento}</b>\\nMonto: $ ${Number(d.monto).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n\\nUsá /saldo para consultar tu cuenta.`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
-      "id": "telegram-pago",
-      "name": "Telegram pago",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [940, 280],
-      "credentials": { "telegramApi": { "id": "telegram-creds", "name": "Telegram Bot" } }
+      "id": "format-vencimiento-cliente",
+      "name": "Formato Vencimiento (cliente)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 900]
     },
     {
       "parameters": {
-        "resource": "message",
-        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
-        "text": "={{ $json.text }}",
-        "additionalFields": {
-          "parse_mode": "HTML"
-        }
+        "jsCode": "// Refinanciación de préstamo\nconst d = $input.item.json.body.datos;\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `🔄 <b>PRÉSTAMO REFINANCIADO</b>\\n\\n👤 ${d.cliente}\\n💰 Nuevo capital: $ ${Number(d.nuevo_capital).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n📅 Nuevas cuotas: ${d.n_cuotas} × $ ${Number(d.monto_cuota).toLocaleString('es-AR', {minimumFractionDigits:2})}\\n📊 Tasa: ${d.tasa}%\\n🗓️ Inicio: ${d.fecha_inicio}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
-      "id": "telegram-cierre",
-      "name": "Telegram cierre",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [940, 400],
-      "credentials": { "telegramApi": { "id": "telegram-creds", "name": "Telegram Bot" } }
+      "id": "format-refinanciacion",
+      "name": "Formato Refinanciación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 1060]
     },
     {
       "parameters": {
-        "resource": "message",
-        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
-        "text": "={{ $json.text }}",
-        "additionalFields": {
-          "parse_mode": "HTML"
-        }
+        "jsCode": "// Cambio de configuración del negocio (solo admin)\nconst d = $input.item.json.body.datos;\nconst cambios = Object.entries(d.cambios || {}).map(([k, v]) => `  • ${k}: ${v}`).join('\\n');\nreturn [{\n  json: {\n    chat_id: $vars.TELEGRAM_CHAT_ID,\n    text: `🛠️ <b>CONFIGURACIÓN ACTUALIZADA</b>\\n\\nUsuario: ${d.usuario || 'admin'}\\n\\nCambios:\\n${cambios || '  (sin detalle)'}`,\n    parse_mode: 'HTML'\n  }\n}];"
       },
-      "id": "telegram-alerta",
-      "name": "Telegram alerta",
+      "id": "format-config",
+      "name": "Formato Cambio Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 1220]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "telegramApi",
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "telegram-prestamista",
+      "name": "Telegram → Prestamista",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [940, 520],
-      "credentials": { "telegramApi": { "id": "telegram-creds", "name": "Telegram Bot" } }
+      "position": [940, 500],
+      "credentials": { "telegramApi": { "id": "1", "name": "Telegram Bot" } }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "telegramApi",
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "telegram-cliente",
+      "name": "Telegram → Cliente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [940, 820],
+      "credentials": { "telegramApi": { "id": "1", "name": "Telegram Bot" } }
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"ok\": true }",
-        "options": {}
+        "responseBody": "={ \"ok\": true }"
       },
       "id": "respond-ok",
-      "name": "Responder OK",
+      "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1180, 340]
+      "position": [1180, 500]
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [[{ "node": "Router por tipo", "type": "main", "index": 0 }]]
+    "Webhook Notificaciones": {
+      "main": [[{ "node": "Router por Tipo", "type": "main", "index": 0 }]]
     },
-    "Router por tipo": {
-      "main": [
-        [{ "node": "Formatear mora",   "type": "main", "index": 0 }],
-        [{ "node": "Formatear pago",   "type": "main", "index": 0 }],
-        [{ "node": "Formatear cierre", "type": "main", "index": 0 }],
-        [{ "node": "Formatear alerta", "type": "main", "index": 0 }]
-      ]
+    "Router por Tipo": {
+      "mora":                [[{ "node": "Formato Mora",               "type": "main", "index": 0 }]],
+      "pago":                [[{ "node": "Formato Pago",               "type": "main", "index": 0 }]],
+      "cierre_dia":          [[{ "node": "Formato Cierre Día",         "type": "main", "index": 0 }]],
+      "alerta_vencimiento":  [[{ "node": "Formato Alertas D-1",        "type": "main", "index": 0 }]],
+      "pago_cliente":        [[{ "node": "Formato Pago (cliente)",     "type": "main", "index": 0 }]],
+      "vencimiento_cliente": [[{ "node": "Formato Vencimiento (cliente)", "type": "main", "index": 0 }]],
+      "refinanciacion":      [[{ "node": "Formato Refinanciación",     "type": "main", "index": 0 }]],
+      "cambio_config":       [[{ "node": "Formato Cambio Config",      "type": "main", "index": 0 }]]
     },
-    "Formatear mora":   { "main": [[{ "node": "Telegram mora",   "type": "main", "index": 0 }]] },
-    "Formatear pago":   { "main": [[{ "node": "Telegram pago",   "type": "main", "index": 0 }]] },
-    "Formatear cierre": { "main": [[{ "node": "Telegram cierre", "type": "main", "index": 0 }]] },
-    "Formatear alerta": { "main": [[{ "node": "Telegram alerta", "type": "main", "index": 0 }]] },
-    "Telegram mora":    { "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]] },
-    "Telegram pago":    { "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]] },
-    "Telegram cierre":  { "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]] },
-    "Telegram alerta":  { "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]] }
+    "Formato Mora":                    { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Formato Pago":                    { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Formato Cierre Día":              { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Formato Alertas D-1":             { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Formato Pago (cliente)":          { "main": [[{ "node": "Telegram → Cliente",     "type": "main", "index": 0 }]] },
+    "Formato Vencimiento (cliente)":   { "main": [[{ "node": "Telegram → Cliente",     "type": "main", "index": 0 }]] },
+    "Formato Refinanciación":          { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Formato Cambio Config":           { "main": [[{ "node": "Telegram → Prestamista", "type": "main", "index": 0 }]] },
+    "Telegram → Prestamista":          { "main": [[{ "node": "Respond OK",             "type": "main", "index": 0 }]] },
+    "Telegram → Cliente":              { "main": [[{ "node": "Respond OK",             "type": "main", "index": 0 }]] }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
   },
   "staticData": null,
-  "tags": ["prestamos.app"],
   "meta": {
-    "description": "Recibe webhooks del backend de prestamos.app y envía notificaciones al prestamista vía Telegram. Tipos: mora, pago, cierre_dia, alerta_vencimiento. Configurar: credential 'Telegram Bot' con bot token + variable TELEGRAM_CHAT_ID."
-  }
+    "instanceId": "prestamos-app",
+    "notes": "Conectar al proyecto Supabase obyfkrprseobehfxusdi (sa-east-1). Configurar variable TELEGRAM_CHAT_ID en n8n Settings > Variables. Crear credencial 'Telegram Bot' con el TELEGRAM_BOT_TOKEN. El backend de prestamos.app postea a este webhook cuando ocurren eventos.\n\nTipos soportados:\n- mora: deuda en mora detectada\n- pago: pago registrado por cobrador\n- cierre_dia: resumen nocturno\n- alerta_vencimiento: cuotas que vencen mañana\n- pago_cliente: confirmación al cliente (requiere cliente_chat_id)\n- vencimiento_cliente: aviso al cliente (requiere cliente_chat_id)\n- refinanciacion: préstamo refinanciado (admin)\n- cambio_config: cambio de configuración del negocio (admin)"
+  },
+  "pinData": {},
+  "versionId": "3.0.0",
+  "triggerCount": 1,
+  "tags": [
+    { "createdAt": "2026-03-25", "updatedAt": "2026-03-25", "id": "1", "name": "prestamos" },
+    { "createdAt": "2026-03-25", "updatedAt": "2026-03-25", "id": "2", "name": "telegram" },
+    { "createdAt": "2026-03-25", "updatedAt": "2026-03-25", "id": "3", "name": "notificaciones" }
+  ]
 }
