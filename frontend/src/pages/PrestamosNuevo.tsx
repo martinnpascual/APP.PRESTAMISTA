@@ -13,13 +13,13 @@ interface PreviewCuota {
   fecha_vencimiento: string
   monto: number
   capital: number
-  interes: number
-  saldo: number
+  intereses: number
+  saldo_restante: number
 }
 
 interface Preview {
-  total_a_pagar: number
-  total_interes: number
+  monto_total: number
+  total_intereses: number
   cuotas: PreviewCuota[]
 }
 
@@ -50,7 +50,7 @@ export default function PrestamosNuevo() {
   })
 
   useEffect(() => {
-    apiGet<any>('/clientes', { per_page: 200 })
+    apiGet<any>('/clientes', { per_page: 100 })
       .then((r: any) => setClientes(r.items ?? r))
       .catch(() => {})
   }, [])
@@ -84,7 +84,8 @@ export default function PrestamosNuevo() {
     setSaving(true)
     setError(null)
     try {
-      const p = await crearPrestamo(form)
+      const payload = { ...form, cobrador_id: form.cobrador_id || null }
+      const p = await crearPrestamo(payload)
       navigate(`/prestamos/${p.id}`)
     } catch (e) {
       setError((e as Error).message)
@@ -176,11 +177,11 @@ export default function PrestamosNuevo() {
             <div className="grid grid-cols-2 gap-px border-b border-gray-100 bg-gray-100">
               <div className="bg-white p-4 text-center">
                 <p className="text-xs text-gray-500">Total a devolver</p>
-                <p className="text-lg font-bold text-gray-900">{fmt(preview.total_a_pagar)}</p>
+                <p className="text-lg font-bold text-gray-900">{fmt(preview.monto_total)}</p>
               </div>
               <div className="bg-white p-4 text-center">
                 <p className="text-xs text-gray-500">Total interés</p>
-                <p className="text-lg font-bold text-blue-600">{fmt(preview.total_interes)}</p>
+                <p className="text-lg font-bold text-blue-600">{fmt(preview.total_intereses)}</p>
               </div>
             </div>
 
@@ -204,8 +205,8 @@ export default function PrestamosNuevo() {
                       <td className="px-3 py-1.5">{c.fecha_vencimiento}</td>
                       <td className="px-3 py-1.5 text-right font-semibold">{fmt(c.monto)}</td>
                       <td className="px-3 py-1.5 text-right hidden sm:table-cell">{fmt(c.capital)}</td>
-                      <td className="px-3 py-1.5 text-right text-blue-600 hidden sm:table-cell">{fmt(c.interes)}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-500">{fmt(c.saldo)}</td>
+                      <td className="px-3 py-1.5 text-right text-blue-600 hidden sm:table-cell">{fmt(c.intereses)}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-500">{fmt(c.saldo_restante)}</td>
                     </tr>
                   ))}
                 </tbody>

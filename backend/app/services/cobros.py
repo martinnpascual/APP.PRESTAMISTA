@@ -281,8 +281,8 @@ def _insertar_visita(
         "cobrador_id": cobrador_id,
         "resultado":   resultado,
         "notas":       notas,
-    }).select("*").single().execute()
-    return r.data or {}
+    }).execute()
+    return r.data[0] if r.data else {}
 
 
 # ---------------------------------------------------------------------------

@@ -20,7 +20,13 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 from supabase import Client
-from weasyprint import HTML
+
+try:
+    from weasyprint import HTML as WeasyHTML
+    WEASYPRINT_AVAILABLE = True
+except OSError:
+    WeasyHTML = None
+    WEASYPRINT_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +53,9 @@ def _render_html(template_name: str, ctx: dict) -> str:
 
 
 def _html_to_pdf(html: str) -> bytes:
-    return HTML(string=html, base_url=str(TEMPLATES_DIR)).write_pdf()
+    if not WEASYPRINT_AVAILABLE:
+        raise RuntimeError("WeasyPrint no disponible en este entorno. Los PDFs funcionan en producción (Docker/Linux).")
+    return WeasyHTML(string=html, base_url=str(TEMPLATES_DIR)).write_pdf()
 
 
 # ---------------------------------------------------------------------------
@@ -110,8 +118,8 @@ def _registrar_documento(
     if pago_id:
         row["pago_id"] = pago_id
 
-    r = supabase.table("documentos").insert(row).select("id").single().execute()
-    return r.data["id"] if r.data else ""
+    r = supabase.table("documentos").insert(row).execute()
+    return r.data[0]["id"] if r.data else ""
 
 
 # ---------------------------------------------------------------------------

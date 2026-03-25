@@ -163,8 +163,8 @@ def registrar_pago(supabase: Client, user: AuthUser, datos: dict) -> dict:
         "registrado_por": user.id,
         "notas":          notas,
     }
-    pago_r = supabase.table("pagos").insert(pago_row).select("*").single().execute()
-    pago = pago_r.data
+    pago_r = supabase.table("pagos").insert(pago_row).execute()
+    pago = pago_r.data[0]
 
     # 5. Actualizar estado de la cuota
     nuevo_monto_pagado = round(float(cuota["monto_pagado"]) + monto, 2)

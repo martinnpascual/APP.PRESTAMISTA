@@ -229,11 +229,9 @@ def crear_prestamo(supabase: Client, user: AuthUser, datos: dict) -> dict:
     prestamo_r = (
         supabase.table("prestamos")
         .insert(prestamo_row)
-        .select("*")
-        .single()
         .execute()
     )
-    prestamo = prestamo_r.data
+    prestamo = prestamo_r.data[0]
     prestamo_id = prestamo["id"]
 
     # 5. Insertar cuotas en bulk

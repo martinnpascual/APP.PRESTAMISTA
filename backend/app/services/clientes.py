@@ -191,8 +191,8 @@ def crear_cliente(supabase: Client, user: AuthUser, datos: dict) -> dict:
         )
 
     datos["created_by"] = user.id
-    result = supabase.table("clientes").insert(datos).select("*").single().execute()
-    cliente = result.data
+    result = supabase.table("clientes").insert(datos).execute()
+    cliente = result.data[0]
 
     _log(supabase, user.id, "INSERT", "clientes", cliente["id"], datos_nuevos=datos)
     return cliente
