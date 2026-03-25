@@ -82,6 +82,39 @@ def _job_notificaciones_pendientes() -> None:
         logger.error("Job notificaciones FALLÓ: %s", e)
 
 
+def _job_lista_cobradores() -> None:
+    """Envía lista del día a cada cobrador con Telegram — 07:00 todos los días."""
+    import asyncio
+    from app.db.supabase import get_supabase
+    from app.services.notificaciones import notificar_cobrador_lista_dia
+    try:
+        supabase = get_supabase()
+        # Obtener cobradores con telegram_chat_id
+        r = (supabase.table("profiles")
+             .select("id, nombre, telegram_chat_id, zona")
+             .eq("rol", "cobrador")
+             .eq("activo", True)
+             .not_.is_("telegram_chat_id", "null")
+             .execute())
+        cobradores = r.data or []
+        for cobrador in cobradores:
+            # Obtener cobros pendientes del día para este cobrador
+            cobros_r = (supabase.table("v_cobros_pendientes")
+                        .select("cliente_nombre, total_a_cobrar, zona, numero, semaforo, fecha_vencimiento")
+                        .eq("cobrador_id", cobrador["id"])
+                        .execute())
+            cobros = cobros_r.data or []
+            if cobros:
+                asyncio.create_task(notificar_cobrador_lista_dia(
+                    cobrador_nombre=cobrador["nombre"],
+                    cobrador_chat_id=cobrador["telegram_chat_id"],
+                    cobros=cobros,
+                ))
+        logger.info("Lista del día enviada a %d cobradores", len(cobradores))
+    except Exception as e:
+        logger.error("Job lista_cobradores FALLÓ: %s", e)
+
+
 def _job_backup_semanal() -> None:
     """Backup semanal de tablas críticas a Supabase Storage — domingo 02:00."""
     from app.services.backup import ejecutar_backup
@@ -117,9 +150,10 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(_job_alertas_manana,            CronTrigger(hour=20, minute=0),          id="alertas_manana")
     scheduler.add_job(_job_cierre_dia,                CronTrigger(hour=23, minute=0),          id="cierre_dia")
     scheduler.add_job(_job_notificaciones_pendientes, CronTrigger(minute="*/5"),               id="notificaciones")
+    scheduler.add_job(_job_lista_cobradores,          CronTrigger(hour=7,  minute=0),          id="lista_cobradores")
     scheduler.add_job(_job_backup_semanal,            CronTrigger(day_of_week="sun", hour=2),  id="backup_semanal")
     scheduler.start()
-    logger.info("Scheduler iniciado — mora@00:30 | alertas@20:00 | cierre@23:00 | notifs@*/5min | backup@dom02:00")
+    logger.info("Scheduler iniciado — mora@00:30 | alertas@20:00 | cierre@23:00 | notifs@*/5min | lista_cobradores@07:00 | backup@dom02:00")
 
     yield
 
@@ -174,16 +208,19 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
-from app.routers import auth, clientes, cobros, documentos, pagos, prestamos, reportes, usuarios
+from app.routers import auth, clientes, cobros, config, documentos, notificaciones, pagos, prestamos, reportes, telegram, usuarios
 
-app.include_router(auth.router,       prefix="/auth",       tags=["auth"])
-app.include_router(clientes.router,   prefix="/clientes",   tags=["clientes"])
-app.include_router(prestamos.router,  prefix="/prestamos",  tags=["préstamos"])
-app.include_router(pagos.router,      prefix="/pagos",      tags=["pagos"])
-app.include_router(cobros.router,     prefix="/cobros",     tags=["cobros + mora"])
-app.include_router(documentos.router, prefix="/documentos", tags=["documentos PDF"])
-app.include_router(reportes.router,   prefix="/reportes",   tags=["reportes"])
-app.include_router(usuarios.router,   prefix="/usuarios",   tags=["usuarios"])
+app.include_router(auth.router,            prefix="/auth",            tags=["auth"])
+app.include_router(clientes.router,        prefix="/clientes",        tags=["clientes"])
+app.include_router(prestamos.router,       prefix="/prestamos",       tags=["préstamos"])
+app.include_router(pagos.router,           prefix="/pagos",           tags=["pagos"])
+app.include_router(cobros.router,          prefix="/cobros",          tags=["cobros + mora"])
+app.include_router(documentos.router,      prefix="/documentos",      tags=["documentos PDF"])
+app.include_router(reportes.router,        prefix="/reportes",        tags=["reportes"])
+app.include_router(telegram.router,        prefix="/telegram",        tags=["telegram bot"])
+app.include_router(usuarios.router,        prefix="/usuarios",        tags=["usuarios"])
+app.include_router(config.router,          prefix="/config",          tags=["configuración"])
+app.include_router(notificaciones.router,  prefix="/notificaciones",  tags=["notificaciones"])
 
 # ---------------------------------------------------------------------------
 # Endpoints base

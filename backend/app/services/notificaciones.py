@@ -272,6 +272,153 @@ async def resumen_cierre_dia(
 # Procesar notificaciones pendientes en tabla
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Notificaciones a clientes (requieren telegram_chat_id en clientes)
+# ---------------------------------------------------------------------------
+
+async def notificar_cliente_pago_registrado(
+    cliente_nombre: str,
+    cliente_chat_id: str,
+    monto: float,
+    cuota_numero: int,
+    saldo_restante: float,
+) -> None:
+    """
+    Envía confirmación de pago al cliente vía Telegram.
+    Solo se llama si el cliente tiene telegram_chat_id configurado.
+    """
+    from app.services.telegram_bot import send_message
+    if not cliente_chat_id:
+        return
+    msg = (
+        f"✅ <b>Pago confirmado</b>\n\n"
+        f"Hola <b>{cliente_nombre}</b>, registramos tu pago:\n"
+        f"💰 Monto: <b>${ monto:,.2f}</b>\n"
+        f"📄 Cuota #{cuota_numero}\n"
+        f"📊 Saldo restante: <b>${saldo_restante:,.2f}</b>"
+        + ("\n\n🎉 ¡Préstamo cancelado! Gracias." if saldo_restante <= 0 else "")
+    )
+    await send_message(cliente_chat_id, msg)
+
+
+async def notificar_cliente_vencimiento_manana(
+    cliente_nombre: str,
+    cliente_chat_id: str,
+    cuota_numero: int,
+    monto: float,
+    fecha_vencimiento: str,
+) -> None:
+    """
+    Alerta D-1 al cliente: su cuota vence mañana.
+    Solo se llama si el cliente tiene telegram_chat_id configurado.
+    """
+    from app.services.telegram_bot import send_message
+    if not cliente_chat_id:
+        return
+    msg = (
+        f"📅 <b>Cuota a vencer mañana</b>\n\n"
+        f"Hola <b>{cliente_nombre}</b>:\n"
+        f"Tu cuota #{cuota_numero} vence el <b>{fecha_vencimiento}</b>\n"
+        f"Monto: <b>${monto:,.2f}</b>\n\n"
+        f"Ante cualquier consulta, respondé este mensaje o usá /saldo"
+    )
+    await send_message(cliente_chat_id, msg)
+
+
+async def notificar_cobrador_lista_dia(
+    cobrador_nombre: str,
+    cobrador_chat_id: str,
+    cobros: list[dict],
+) -> None:
+    """
+    Envía al cobrador su lista del día vía Telegram (7:00 AM).
+    cobros: lista de dicts con cliente_nombre, total_a_cobrar, zona, numero, semaforo
+    """
+    from app.services.telegram_bot import send_message
+    if not cobrador_chat_id or not cobros:
+        return
+    total = sum(float(c.get("total_a_cobrar") or 0) for c in cobros)
+    lineas = []
+    for c in cobros[:15]:  # máximo 15 para no superar límite de Telegram
+        semaforo = {"rojo": "🔴", "naranja": "🟠", "amarillo": "🟡"}.get(c.get("semaforo", ""), "⚪")
+        lineas.append(
+            f"{semaforo} {c['cliente_nombre']} — ${float(c.get('total_a_cobrar') or 0):,.0f}"
+        )
+    msg = (
+        f"📋 <b>Lista del día — {cobrador_nombre}</b>\n"
+        f"Total: <b>${total:,.2f}</b> · {len(cobros)} cobros\n\n"
+        + "\n".join(lineas)
+        + (f"\n...y {len(cobros) - 15} más" if len(cobros) > 15 else "")
+    )
+    await send_message(cobrador_chat_id, msg)
+
+
+async def notificar_refinanciacion(
+    cliente_nombre: str,
+    prestamo_id: str,
+    nuevo_capital: float,
+    n_cuotas: int,
+    monto_cuota: float,
+    tasa: float,
+    fecha_inicio: str = "",
+) -> None:
+    """Notifica al prestamista cuando se refinancia un préstamo."""
+    datos = {
+        "cliente": cliente_nombre,
+        "prestamo_id": prestamo_id,
+        "nuevo_capital": nuevo_capital,
+        "n_cuotas": n_cuotas,
+        "monto_cuota": monto_cuota,
+        "tasa": tasa,
+        "fecha_inicio": fecha_inicio or date.today().isoformat(),
+    }
+    mensaje_tg = (
+        f"🔄 <b>PRÉSTAMO REFINANCIADO</b>\n\n"
+        f"👤 {cliente_nombre}\n"
+        f"💰 Nuevo capital: {_fmt_ars(nuevo_capital)}\n"
+        f"📅 Nuevas cuotas: {n_cuotas} × {_fmt_ars(monto_cuota)}\n"
+        f"📊 Tasa: {tasa}%\n"
+        f"🗓️ Inicio: {datos['fecha_inicio']}"
+    )
+    cuerpo = f"""
+    <h2 style='color:#7c3aed'>🔄 Préstamo refinanciado</h2>
+    <table>
+    {_html_row('Cliente', cliente_nombre)}
+    {_html_row('Nuevo capital', _fmt_ars(nuevo_capital))}
+    {_html_row('Nuevas cuotas', f'{n_cuotas} × {_fmt_ars(monto_cuota)}')}
+    {_html_row('Tasa', f'{tasa}%')}
+    {_html_row('Fecha inicio', datos['fecha_inicio'])}
+    </table>
+    """
+    await _despachar("refinanciacion", datos, mensaje_tg, f"Refinanciación — {cliente_nombre}", cuerpo)
+
+
+async def notificar_cambio_config(
+    usuario_nombre: str,
+    cambios: dict,
+) -> None:
+    """Notifica al prestamista cuando se cambia la configuración del negocio."""
+    if not cambios:
+        return
+    datos = {
+        "usuario": usuario_nombre,
+        "cambios": cambios,
+        "fecha": date.today().isoformat(),
+    }
+    lineas = "\n".join(f"  • {k}: {v}" for k, v in cambios.items())
+    mensaje_tg = (
+        f"🛠️ <b>CONFIGURACIÓN ACTUALIZADA</b>\n\n"
+        f"Usuario: {usuario_nombre}\n\n"
+        f"Cambios:\n{lineas}"
+    )
+    cuerpo = f"""
+    <h2 style='color:#d97706'>🛠️ Configuración actualizada</h2>
+    <p>Usuario: <strong>{usuario_nombre}</strong></p>
+    <table>{''.join(_html_row(k, str(v)) for k, v in cambios.items())}</table>
+    """
+    await _despachar("cambio_config", datos, mensaje_tg, "Configuración actualizada", cuerpo)
+
+
 async def procesar_pendientes(supabase: Client) -> int:
     """
     Lee notificaciones no enviadas de la tabla `notificaciones`,
