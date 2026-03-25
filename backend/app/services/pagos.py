@@ -188,12 +188,65 @@ def registrar_pago(supabase: Client, user: AuthUser, datos: dict) -> dict:
         "Pago registrado: cuota=%s monto=$%.2f cobrador=%s",
         cuota_id, monto, user.id,
     )
+
+    # Notificación al cliente si tiene Telegram vinculado (fire-and-forget)
+    _notificar_cliente_pago_async(
+        supabase=supabase,
+        cliente_id=prestamo["cliente_id"],
+        monto=monto,
+        cuota_numero=cuota["numero"],
+        prestamo_id=prestamo_id,
+    )
+
     return pago
 
 
 # ---------------------------------------------------------------------------
 # Helpers internos
 # ---------------------------------------------------------------------------
+
+def _notificar_cliente_pago_async(
+    supabase: Client,
+    cliente_id: str,
+    monto: float,
+    cuota_numero: int,
+    prestamo_id: str,
+) -> None:
+    """
+    Programa (fire-and-forget) una notificación de pago al cliente vía Telegram.
+    Solo actúa si el cliente tiene telegram_chat_id configurado.
+    """
+    import asyncio
+    try:
+        cliente_r = (supabase.table("clientes")
+                     .select("nombre, telegram_chat_id")
+                     .eq("id", cliente_id)
+                     .single()
+                     .execute())
+        cliente = cliente_r.data or {}
+        chat_id = cliente.get("telegram_chat_id")
+        if not chat_id:
+            return
+
+        # Obtener saldo actualizado del préstamo
+        p_r = (supabase.table("prestamos")
+               .select("saldo_pendiente")
+               .eq("id", prestamo_id)
+               .single()
+               .execute())
+        saldo = float((p_r.data or {}).get("saldo_pendiente", 0))
+
+        from app.services.notificaciones import notificar_cliente_pago_registrado
+        asyncio.create_task(notificar_cliente_pago_registrado(
+            cliente_nombre=cliente.get("nombre", ""),
+            cliente_chat_id=chat_id,
+            monto=monto,
+            cuota_numero=cuota_numero,
+            saldo_restante=saldo,
+        ))
+    except Exception as exc:
+        logger.warning("No se pudo programar notificación al cliente: %s", exc)
+
 
 def _verificar_acceso_prestamo(supabase: Client, user: AuthUser, prestamo_id: str) -> None:
     """Lanza 403 si el cobrador no tiene acceso al préstamo."""
@@ -208,6 +261,51 @@ def _verificar_acceso_prestamo(supabase: Client, user: AuthUser, prestamo_id: st
     )
     if not r.data or r.data.get("cobrador_id") != user.id:
         raise HTTPException(status_code=403, detail="Sin acceso a este préstamo")
+
+
+def condonar_cuota(supabase: Client, user: AuthUser, cuota_id: str) -> dict:
+    """
+    Condona (perdona) una cuota: la marca como 'condonada' y ajusta el saldo del préstamo.
+    Solo para admin.
+    """
+    cuota_r = supabase.table("cuotas").select("*").eq("id", cuota_id).single().execute()
+    if not cuota_r.data:
+        return {"error": "Cuota no encontrada"}
+    cuota = cuota_r.data
+    if cuota["estado"] in ("pagada", "condonada"):
+        return {"error": f"La cuota ya está en estado '{cuota['estado']}'"}
+
+    prestamo_id = cuota["prestamo_id"]
+    saldo_cuota = round(float(cuota["monto"]) - float(cuota["monto_pagado"]) + float(cuota["recargo_mora"]), 2)
+
+    # Marcar cuota como condonada
+    supabase.table("cuotas").update({"estado": "condonada"}).eq("id", cuota_id).execute()
+
+    # Reducir saldo del préstamo manualmente (el trigger no actúa en condonaciones)
+    p_r = supabase.table("prestamos").select("saldo_pendiente").eq("id", prestamo_id).single().execute()
+    if p_r.data:
+        nuevo_saldo = max(0, round(float(p_r.data["saldo_pendiente"]) - saldo_cuota, 2))
+        supabase.table("prestamos").update({"saldo_pendiente": nuevo_saldo}).eq("id", prestamo_id).execute()
+
+    _evaluar_cierre_prestamo(supabase, prestamo_id)
+    _log(supabase, user.id, "CONDONAR", "cuotas", cuota_id, datos_nuevos={"estado": "condonada", "cuota_id": cuota_id})
+    logger.info("Cuota %s condonada por admin %s", cuota_id, user.id)
+    return {"ok": True, "cuota_id": cuota_id, "saldo_condonado": saldo_cuota}
+
+
+def historial_pagos_dia(supabase: Client, user: AuthUser, fecha: str | None = None) -> list[dict]:
+    """Todos los pagos registrados en una fecha, con info del cliente y cuota."""
+    from datetime import date
+    fecha_str = fecha or date.today().isoformat()
+    q = (supabase.table("pagos")
+         .select("*, cuotas(numero, fecha_vencimiento), clientes(nombre, zona), profiles!pagos_registrado_por_fkey(nombre)")
+         .gte("fecha_pago", f"{fecha_str}T00:00:00")
+         .lte("fecha_pago", f"{fecha_str}T23:59:59")
+         .order("fecha_pago", desc=True))
+    if user.rol == "cobrador":
+        q = q.eq("registrado_por", user.id)
+    res = q.execute()
+    return res.data or []
 
 
 def _evaluar_cierre_prestamo(supabase: Client, prestamo_id: str) -> None:

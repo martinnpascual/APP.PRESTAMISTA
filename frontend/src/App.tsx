@@ -17,6 +17,8 @@ import PrestamoDetalle from './pages/PrestamoDetalle'
 import CobrosHoy from './pages/CobrosHoy'
 import Reportes from './pages/Reportes'
 import Usuarios from './pages/Usuarios'
+import Configuracion from './pages/Configuracion'
+import Notificaciones from './pages/Notificaciones'
 
 export default function App() {
   const { initialize, initialized } = useAuthStore()
@@ -51,6 +53,12 @@ export default function App() {
           <Route path="prestamos/:id" element={<PrestamoDetalle />} />
           <Route path="cobros" element={<CobrosHoy />} />
           <Route path="reportes" element={<Reportes />} />
+          <Route path="notificaciones" element={<Notificaciones />} />
+          <Route path="configuracion" element={
+            <ProtectedRoute requireAdmin>
+              <Configuracion />
+            </ProtectedRoute>
+          } />
           <Route path="usuarios" element={
             <ProtectedRoute requireAdmin>
               <Usuarios />

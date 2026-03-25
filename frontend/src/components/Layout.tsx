@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { apiGet } from '../services/api'
 
 const NAV = [
   { to: '/',          label: 'Inicio',     emoji: '⚡' },
@@ -16,6 +18,20 @@ export default function Layout() {
   const isAdmin = session?.user?.app_metadata?.rol === 'admin' || session?.user?.user_metadata?.rol === 'admin'
   const name = user?.email?.split('@')[0] ?? 'Usuario'
   const initial = name[0]?.toUpperCase() ?? 'U'
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    // Contar notificaciones no enviadas
+    apiGet<{ total: number }>('/notificaciones/conteo').then(d => {
+      if (d && typeof d.total === 'number') setUnread(d.total)
+    }).catch(() => {})
+    const interval = setInterval(() => {
+      apiGet<{ total: number }>('/notificaciones/conteo').then(d => {
+        if (d && typeof d.total === 'number') setUnread(d.total)
+      }).catch(() => {})
+    }, 60_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
 
@@ -34,11 +50,12 @@ export default function Layout() {
         .sb-logo  { display:flex; align-items:center; gap:10px; padding:20px 18px 18px; border-bottom:1px solid rgba(255,255,255,0.05); }
         .sb-logo-dot { width:30px; height:30px; border-radius:8px; background:#6366f1; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; }
         .sb-logo-text { font-size:14px; font-weight:700; color:#e4e6eb; letter-spacing:-0.01em; }
-        .sb-nav { flex:1; padding:12px 10px; display:flex; flex-direction:column; gap:2px; }
+        .sb-nav { flex:1; padding:12px 10px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
         .sb-link { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; text-decoration:none; font-size:13.5px; font-weight:500; color:#9ca3af; transition:background .15s,color .15s; }
         .sb-link:hover { background:rgba(255,255,255,0.05); color:#e4e6eb; }
         .sb-link.active { background:rgba(99,102,241,0.12); color:#a5b4fc; font-weight:600; }
         .sb-link-icon { font-size:15px; width:20px; text-align:center; }
+        .sb-divider { height:1px; background:rgba(255,255,255,0.05); margin:8px 10px; }
         .sb-user { padding:12px; border-top:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; gap:10px; }
         .sb-avatar { width:32px; height:32px; border-radius:50%; background:#6366f1; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:white; flex-shrink:0; }
         .sb-uinfo { flex:1; min-width:0; }
@@ -53,6 +70,7 @@ export default function Layout() {
         .mob-logo { display:flex; align-items:center; gap:8px; }
         .mob-logo-dot { width:26px; height:26px; border-radius:7px; background:#6366f1; display:flex; align-items:center; justify-content:center; font-size:12px; }
         .mob-logo-text { font-size:14px; font-weight:700; color:#e4e6eb; }
+        .mob-actions { display:flex; align-items:center; gap:8px; }
         .page-scroll { flex:1; overflow-y:auto; padding-bottom:72px; }
         @media(min-width:769px){ .page-scroll{padding-bottom:0} }
         /* ── bottom nav mobile ── */
@@ -84,6 +102,10 @@ export default function Layout() {
         .text-blue-600{ color:#2563eb!important; }
         .text-red-600 { color:#dc2626!important; }
         .text-green-600{color:#16a34a!important; }
+        /* ── badge notif ── */
+        .notif-badge { position:absolute; top:-3px; right:-3px; background:#ef4444; color:#fff; font-size:9px; font-weight:700; border-radius:99px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+        .notif-btn { position:relative; background:none; border:none; cursor:pointer; color:#6b7280; padding:6px; border-radius:6px; display:flex; align-items:center; transition:background .15s,color .15s; }
+        .notif-btn:hover { background:rgba(255,255,255,0.05); color:#e4e6eb; }
         a { color:inherit; text-decoration:none; }
       `}</style>
 
@@ -102,6 +124,23 @@ export default function Layout() {
                 {n.label}
               </NavLink>
             ))}
+
+            <div className="sb-divider" />
+
+            <NavLink to="/notificaciones" className={({isActive})=>`sb-link${isActive?' active':''}`}>
+              <span className="sb-link-icon" style={{ position: 'relative', display: 'inline-block' }}>
+                🔔
+                {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
+              </span>
+              Notificaciones
+            </NavLink>
+
+            {isAdmin && (
+              <NavLink to="/configuracion" className={({isActive})=>`sb-link${isActive?' active':''}`}>
+                <span className="sb-link-icon">🛠️</span>
+                Configuración
+              </NavLink>
+            )}
           </nav>
 
           <div className="sb-user">
@@ -126,11 +165,17 @@ export default function Layout() {
               <div className="mob-logo-dot">💰</div>
               <span className="mob-logo-text">prestamos.app</span>
             </div>
-            <button className="sb-logout" onClick={handleSignOut}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-              </svg>
-            </button>
+            <div className="mob-actions">
+              <NavLink to="/notificaciones" style={{ position: 'relative', display: 'flex', alignItems: 'center', color: '#6b7280', padding: 6 }}>
+                <span style={{ fontSize: 18 }}>🔔</span>
+                {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
+              </NavLink>
+              <button className="sb-logout" onClick={handleSignOut}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+              </button>
+            </div>
           </header>
 
           <main className="page-scroll">
@@ -146,6 +191,13 @@ export default function Layout() {
               {n.label}
             </NavLink>
           ))}
+          <NavLink to="/notificaciones" className={({isActive})=>`bot-link${isActive?' active':''}`}>
+            <span className="bot-icon" style={{ position: 'relative', display: 'inline-block' }}>
+              🔔
+              {unread > 0 && <span className="notif-badge" style={{ top: -2, right: -4 }}>{unread}</span>}
+            </span>
+            Notifs
+          </NavLink>
         </nav>
       </div>
     </>

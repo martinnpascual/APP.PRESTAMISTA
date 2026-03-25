@@ -198,6 +198,171 @@ async def asignar_cobrador(
 
 
 # ---------------------------------------------------------------------------
+# POST /prestamos/{id}/refinanciar — Refinanciar
+# ---------------------------------------------------------------------------
+@router.post(
+    "/{prestamo_id}/refinanciar",
+    response_model=ApiResponse[dict],
+    summary="Refinanciar préstamo (admin)",
+)
+async def refinanciar_prestamo(
+    prestamo_id: str,
+    body: dict,
+    user: AuthUser = Depends(require_admin),
+):
+    """
+    Refinancia un préstamo en mora o activo:
+    1. Condona todas las cuotas pendientes/mora.
+    2. Crea nuevas cuotas por el saldo actual, con el número y tasa indicados.
+    El préstamo queda en estado 'activo'.
+    """
+    from pydantic import BaseModel
+    from app.services.pagos import condonar_cuota
+
+    supabase = get_supabase()
+
+    # Obtener préstamo
+    p_r = supabase.table("prestamos").select("*").eq("id", prestamo_id).single().execute()
+    if not p_r.data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Préstamo no encontrado")
+    prestamo = p_r.data
+
+    if prestamo["estado"] not in ("activo", "en_mora"):
+        from app.schemas.base import err
+        return err("Solo se puede refinanciar un préstamo activo o en mora")
+
+    n_cuotas = int(body.get("n_cuotas", prestamo["n_cuotas"]))
+    tasa = float(body.get("tasa") or prestamo["tasa"])
+    saldo = float(prestamo["saldo_pendiente"])
+
+    if saldo <= 0:
+        from app.schemas.base import err
+        return err("El saldo pendiente es 0, no se puede refinanciar")
+
+    # 1. Condonar cuotas pendientes
+    cuotas_r = (supabase.table("cuotas")
+                .select("id, estado")
+                .eq("prestamo_id", prestamo_id)
+                .in_("estado", ["pendiente", "pago_parcial", "mora"])
+                .execute())
+    for c in cuotas_r.data or []:
+        supabase.table("cuotas").update({"estado": "condonada"}).eq("id", c["id"]).execute()
+
+    # 2. Crear nuevas cuotas desde hoy
+    from datetime import date
+    from app.services.calculadora import calcular_cuotas
+    from app.schemas.prestamos import Periodicidad
+    from decimal import Decimal
+
+    nueva_fecha = date.today()
+    nuevas_cuotas = calcular_cuotas(
+        monto=Decimal(str(saldo)),
+        tasa=Decimal(str(tasa)),
+        tipo_tasa=prestamo["tipo_tasa"],
+        periodicidad=prestamo["periodicidad"],
+        n_cuotas=n_cuotas,
+        fecha_inicio=nueva_fecha,
+    )
+
+    # Determinar número de cuota siguiente
+    max_num_r = (supabase.table("cuotas")
+                 .select("numero")
+                 .eq("prestamo_id", prestamo_id)
+                 .order("numero", desc=True)
+                 .limit(1)
+                 .execute())
+    base_num = (max_num_r.data[0]["numero"] if max_num_r.data else 0)
+
+    rows = [
+        {
+            "prestamo_id": prestamo_id,
+            "numero": base_num + i + 1,
+            "fecha_vencimiento": str(c["fecha_vencimiento"]),
+            "monto": float(c["monto"]),
+            "monto_pagado": 0,
+            "recargo_mora": 0,
+            "dias_mora": 0,
+            "estado": "pendiente",
+        }
+        for i, c in enumerate(nuevas_cuotas)
+    ]
+    supabase.table("cuotas").insert(rows).execute()
+
+    # 3. Actualizar préstamo: saldo, n_cuotas, tasa, estado activo
+    supabase.table("prestamos").update({
+        "estado": "activo",
+        "saldo_pendiente": saldo,
+        "n_cuotas": base_num + n_cuotas,
+        "tasa": tasa,
+    }).eq("id", prestamo_id).execute()
+
+    from app.services.clientes import _log
+    _log(supabase, user.id, "REFINANCIAR", "prestamos", prestamo_id,
+         datos_nuevos={"n_cuotas": n_cuotas, "tasa": tasa, "saldo": saldo})
+
+    # Notificar
+    try:
+        from app.services.notificaciones import notificar_refinanciacion
+        cliente_r = (supabase.table("clientes")
+                     .select("nombre")
+                     .eq("id", prestamo["cliente_id"])
+                     .single().execute())
+        cliente_nombre = (cliente_r.data or {}).get("nombre", "—")
+        monto_cuota = round(saldo / n_cuotas, 2) if n_cuotas else 0
+        import asyncio
+        asyncio.create_task(notificar_refinanciacion(
+            cliente_nombre=cliente_nombre,
+            prestamo_id=prestamo_id,
+            nuevo_capital=saldo,
+            n_cuotas=n_cuotas,
+            monto_cuota=monto_cuota,
+            tasa=tasa,
+            fecha_inicio=str(nueva_fecha),
+        ))
+    except Exception:
+        pass
+
+    return ok({"prestamo_id": prestamo_id, "nuevas_cuotas": n_cuotas, "saldo": saldo})
+
+
+# ---------------------------------------------------------------------------
+# GET /prestamos/por-vencer — Préstamos por vencer
+# ---------------------------------------------------------------------------
+@router.get(
+    "/por-vencer",
+    response_model=ApiResponse[list[dict]],
+    summary="Préstamos con cuotas por vencer en los próximos días",
+)
+async def prestamos_por_vencer(
+    dias: int = Query(7, ge=1, le=60, description="Ventana de días hacia adelante"),
+    user: AuthUser = Depends(get_current_user),
+):
+    """Cuotas que vencen en los próximos N días (default: 7)."""
+    from datetime import date, timedelta
+    supabase = get_supabase()
+    hoy = date.today()
+    hasta = hoy + timedelta(days=dias)
+
+    q = (supabase.table("cuotas")
+         .select("*, prestamos(cliente_id, cobrador_id, periodicidad, clientes(nombre, zona, telefono))")
+         .in_("estado", ["pendiente", "pago_parcial"])
+         .gte("fecha_vencimiento", str(hoy))
+         .lte("fecha_vencimiento", str(hasta))
+         .order("fecha_vencimiento"))
+
+    if user.rol == "cobrador":
+        # Filtrar por cobrador: necesitamos el join
+        res = q.execute()
+        data = [r for r in (res.data or []) if (r.get("prestamos") or {}).get("cobrador_id") == user.id]
+    else:
+        res = q.execute()
+        data = res.data or []
+
+    return ok(data)
+
+
+# ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 

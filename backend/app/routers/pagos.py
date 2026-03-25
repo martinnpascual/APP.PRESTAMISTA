@@ -5,14 +5,16 @@ Endpoints:
   POST   /pagos                          — registrar pago (admin o cobrador)
   GET    /pagos/{prestamo_id}            — historial de pagos de un préstamo
   GET    /pagos/{prestamo_id}/cuotas     — cuotas del préstamo con estado
+  POST   /pagos/condonar/{cuota_id}      — condonar cuota (admin)
+  GET    /pagos/historial                — historial global de pagos del día
 """
 import logging
 
 from fastapi import APIRouter, Depends, Query
 
 from app.db.supabase import get_supabase
-from app.middleware.auth import AuthUser, get_current_user, require_cobrador_or_admin
-from app.schemas.base import ApiResponse, ok
+from app.middleware.auth import AuthUser, get_current_user, require_cobrador_or_admin, require_admin
+from app.schemas.base import ApiResponse, ok, err
 from app.schemas.pagos import PagoIn, PagoOut, PaginatedPagos
 from app.services import pagos as svc
 
@@ -80,13 +82,41 @@ async def cuotas_prestamo(
     prestamo_id: str,
     user: AuthUser = Depends(get_current_user),
 ):
-    """
-    Lista todas las cuotas de un préstamo con estado actualizado.
-    Semáforo visual:
-      - `pendiente` / `pago_parcial` → amarillo
-      - `mora`                       → rojo
-      - `pagada` / `condonada`       → verde
-    """
     supabase = get_supabase()
     cuotas = svc.obtener_cuotas_prestamo(supabase, user, prestamo_id)
     return ok(cuotas)
+
+
+@router.post(
+    "/condonar/{cuota_id}",
+    response_model=ApiResponse[dict],
+    summary="Condonar una cuota (admin)",
+)
+async def condonar_cuota(
+    cuota_id: str,
+    user: AuthUser = Depends(require_admin),
+):
+    """
+    Marca la cuota como condonada (perdonada). Solo admin.
+    El saldo del préstamo se ajusta automáticamente.
+    """
+    supabase = get_supabase()
+    result = svc.condonar_cuota(supabase, user, cuota_id)
+    if result.get("error"):
+        return err(result["error"])
+    return ok(result)
+
+
+@router.get(
+    "/historial/dia",
+    response_model=ApiResponse[list[dict]],
+    summary="Historial global de pagos del día",
+)
+async def historial_dia(
+    fecha: str | None = Query(None, description="Fecha YYYY-MM-DD, default hoy"),
+    user: AuthUser = Depends(get_current_user),
+):
+    """Todos los pagos registrados en una fecha dada, con info del cliente."""
+    supabase = get_supabase()
+    items = svc.historial_pagos_dia(supabase, user, fecha)
+    return ok(items)
