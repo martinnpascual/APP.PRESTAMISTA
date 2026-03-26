@@ -218,7 +218,7 @@ def crear_prestamo(supabase: Client, user: AuthUser, datos: dict) -> dict:
         "n_cuotas": resultado.n_cuotas,
         "monto_cuota": float(resultado.monto_cuota),
         "monto_total": float(resultado.monto_total),
-        "saldo_pendiente": float(resultado.monto_total),
+        "saldo_pendiente": float(resultado.monto),
         "estado": "pendiente_aprobacion",
         "fecha_inicio": resultado.fecha_inicio.isoformat(),
         "fecha_fin_estimada": resultado.fecha_fin_estimada.isoformat(),
