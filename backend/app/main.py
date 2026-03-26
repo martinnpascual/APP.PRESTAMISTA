@@ -3,6 +3,7 @@ main.py — FastAPI application entry point
 prestamos.app — S-08/S-13
 """
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -145,19 +146,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Error conectando a Supabase: %s", e)
 
-    # Registrar jobs del scheduler
-    scheduler.add_job(_job_mora,                      CronTrigger(hour=0,  minute=30),         id="mora")
-    scheduler.add_job(_job_alertas_manana,            CronTrigger(hour=20, minute=0),          id="alertas_manana")
-    scheduler.add_job(_job_cierre_dia,                CronTrigger(hour=23, minute=0),          id="cierre_dia")
-    scheduler.add_job(_job_notificaciones_pendientes, CronTrigger(minute="*/5"),               id="notificaciones")
-    scheduler.add_job(_job_lista_cobradores,          CronTrigger(hour=7,  minute=0),          id="lista_cobradores")
-    scheduler.add_job(_job_backup_semanal,            CronTrigger(day_of_week="sun", hour=2),  id="backup_semanal")
-    scheduler.start()
-    logger.info("Scheduler iniciado — mora@00:30 | alertas@20:00 | cierre@23:00 | notifs@*/5min | lista_cobradores@07:00 | backup@dom02:00")
+    # Scheduler — solo en entornos con procesos persistentes (no Vercel serverless)
+    if not os.environ.get("VERCEL"):
+        scheduler.add_job(_job_mora,                      CronTrigger(hour=0,  minute=30),         id="mora")
+        scheduler.add_job(_job_alertas_manana,            CronTrigger(hour=20, minute=0),          id="alertas_manana")
+        scheduler.add_job(_job_cierre_dia,                CronTrigger(hour=23, minute=0),          id="cierre_dia")
+        scheduler.add_job(_job_notificaciones_pendientes, CronTrigger(minute="*/5"),               id="notificaciones")
+        scheduler.add_job(_job_lista_cobradores,          CronTrigger(hour=7,  minute=0),          id="lista_cobradores")
+        scheduler.add_job(_job_backup_semanal,            CronTrigger(day_of_week="sun", hour=2),  id="backup_semanal")
+        scheduler.start()
+        logger.info("Scheduler iniciado — mora@00:30 | alertas@20:00 | cierre@23:00 | notifs@*/5min | lista_cobradores@07:00 | backup@dom02:00")
+    else:
+        logger.info("Entorno Vercel — scheduler deshabilitado")
 
     yield
 
-    scheduler.shutdown(wait=False)
+    if not os.environ.get("VERCEL"):
+        scheduler.shutdown(wait=False)
     logger.info("prestamos.app apagando")
 
 
