@@ -138,9 +138,13 @@ export default function PrestamoDetalle() {
     }
   }
 
+  const [aprobando, setAprobando] = useState(false)
+
   const aprobar = async () => {
     if (!id) return
+    setAprobando(true)
     try { await cambiarEstado(id, 'activo') } catch (e) { alert((e as Error).message) }
+    finally { setAprobando(false) }
   }
 
   const generarTabla = async () => {
@@ -283,9 +287,10 @@ export default function PrestamoDetalle() {
       {/* Acciones */}
       <div className="mb-4 flex flex-wrap gap-2">
         {p.estado === 'pendiente_aprobacion' && (
-          <button onClick={aprobar}
-            className="flex-1 rounded-xl bg-green-600 py-2 text-sm font-semibold text-white hover:bg-green-700">
-            ✓ Aprobar préstamo
+          <button onClick={aprobar} disabled={aprobando}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60">
+            {aprobando ? <Spinner size="sm" className="border-white border-t-green-200" /> : null}
+            {aprobando ? 'Aprobando...' : '✓ Aprobar préstamo'}
           </button>
         )}
         <button onClick={generarContrato} disabled={genContrato}
