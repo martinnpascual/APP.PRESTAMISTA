@@ -8,4 +8,3 @@ python-dateutil==2.9.0
 apscheduler==3.10.4
 python-multipart==0.0.9
 python-jose[cryptography]==3.3.0
-starlette==0.41.3
