@@ -308,20 +308,14 @@ def cambiar_estado(
                    f"Permitidas: {TRANSICIONES_VALIDAS.get(estado_actual, [])}",
         )
 
-    result = (
-        supabase.table("prestamos")
-        .update({"estado": nuevo_estado})
-        .eq("id", prestamo_id)
-        .select("*")
-        .single()
-        .execute()
-    )
+    supabase.table("prestamos").update({"estado": nuevo_estado}).eq("id", prestamo_id).execute()
     _log(
         supabase, user.id, "UPDATE_ESTADO", "prestamos", prestamo_id,
         datos_anteriores={"estado": estado_actual},
         datos_nuevos={"estado": nuevo_estado},
     )
-    return result.data
+    prestamo["estado"] = nuevo_estado
+    return prestamo
 
 
 def asignar_cobrador(
@@ -350,17 +344,11 @@ def asignar_cobrador(
         if not cobrador_r.data or not cobrador_r.data.get("activo"):
             raise HTTPException(status_code=404, detail="Cobrador no encontrado o inactivo")
 
-    result = (
-        supabase.table("prestamos")
-        .update({"cobrador_id": cobrador_id})
-        .eq("id", prestamo_id)
-        .select("*")
-        .single()
-        .execute()
-    )
+    supabase.table("prestamos").update({"cobrador_id": cobrador_id}).eq("id", prestamo_id).execute()
     _log(
         supabase, user.id, "UPDATE_COBRADOR", "prestamos", prestamo_id,
         datos_anteriores={"cobrador_id": prestamo.get("cobrador_id")},
         datos_nuevos={"cobrador_id": cobrador_id},
     )
-    return result.data
+    prestamo["cobrador_id"] = cobrador_id
+    return prestamo
