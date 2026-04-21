@@ -161,8 +161,22 @@ export default function Layout() {
         .text-yellow-700,.text-yellow-800 { color:#fbbf24 !important }
         /* Focus ring */
         .focus\\:border-blue-500:focus { border-color:#6366f1 !important }
-        /* SVG display fix */
-        svg { display:block; flex-shrink:0; overflow:hidden; }
+        /* SVG display + size fix — prevents Heroicons from expanding to full width */
+        svg { display:inline-block; flex-shrink:0; overflow:hidden; vertical-align:middle; }
+        svg.h-3,  .h-3>svg  { height:0.75rem!important;  width:0.75rem!important;  }
+        svg.h-4,  .h-4>svg  { height:1rem!important;     width:1rem!important;     }
+        svg.h-5,  .h-5>svg  { height:1.25rem!important;  width:1.25rem!important;  }
+        svg.h-6,  .h-6>svg  { height:1.5rem!important;   width:1.5rem!important;   }
+        svg.h-7,  .h-7>svg  { height:1.75rem!important;  width:1.75rem!important;  }
+        svg.h-8,  .h-8>svg  { height:2rem!important;     width:2rem!important;     }
+        svg.h-10, .h-10>svg { height:2.5rem!important;   width:2.5rem!important;   }
+        svg.h-12, .h-12>svg { height:3rem!important;     width:3rem!important;     }
+        svg.w-3  { width:0.75rem!important; }
+        svg.w-4  { width:1rem!important;    }
+        svg.w-5  { width:1.25rem!important; }
+        svg.w-6  { width:1.5rem!important;  }
+        svg.w-8  { width:2rem!important;    }
+        svg.w-10 { width:2.5rem!important;  }
 
         /* ═══════════════════════════
            LAYOUT BASE
