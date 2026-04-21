@@ -163,9 +163,9 @@ export default function Layout() {
         .focus\\:border-blue-500:focus { border-color:#6366f1 !important }
         /* SVG display + size fix — prevents Heroicons from expanding to full width */
         svg { display:inline-block; flex-shrink:0; overflow:hidden; vertical-align:middle; }
-        svg.h-3,    .h-3>svg    { height:0.75rem!important;  width:0.75rem!important;  }
-        svg.h-3\.5, .h-3\.5>svg { height:0.875rem!important; width:0.875rem!important; }
-        svg.h-4,    .h-4>svg    { height:1rem!important;     width:1rem!important;     }
+        svg.h-3,     .h-3>svg     { height:0.75rem!important;  width:0.75rem!important;  }
+        svg.h-3\\.5, .h-3\\.5>svg { height:0.875rem!important; width:0.875rem!important; }
+        svg.h-4,     .h-4>svg     { height:1rem!important;     width:1rem!important;     }
         svg.h-5,  .h-5>svg  { height:1.25rem!important;  width:1.25rem!important;  }
         svg.h-6,  .h-6>svg  { height:1.5rem!important;   width:1.5rem!important;   }
         svg.h-7,  .h-7>svg  { height:1.75rem!important;  width:1.75rem!important;  }
