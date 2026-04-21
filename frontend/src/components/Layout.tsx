@@ -150,6 +150,15 @@ export default function Layout() {
         .bg-gray-100.h-2,.bg-gray-100.overflow-hidden { background:rgba(255,255,255,.08) !important }
         /* Tabs container */
         .bg-gray-100.rounded-xl { background:rgba(255,255,255,.06) !important }
+        /* Alert border colors */
+        .border-red-200    { border-color:rgba(239,68,68,.25) !important }
+        .border-green-200  { border-color:rgba(34,197,94,.25) !important }
+        .border-yellow-200 { border-color:rgba(234,179,8,.25) !important }
+        .border-blue-200   { border-color:rgba(99,102,241,.25) !important }
+        .border-orange-200 { border-color:rgba(249,115,22,.25) !important }
+        /* text-blue-800 in alerts */
+        .text-blue-800     { color:#a5b4fc !important }
+        .text-yellow-700,.text-yellow-800 { color:#fbbf24 !important }
         /* Focus ring */
         .focus\\:border-blue-500:focus { border-color:#6366f1 !important }
         /* SVG display fix */
