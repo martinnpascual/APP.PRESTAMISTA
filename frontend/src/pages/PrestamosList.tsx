@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { usePrestamosStore } from '../stores/prestamosStore'
 import Spinner from '../components/ui/Spinner'
-import Alert from '../components/ui/Alert'
-import { BadgePrestamo } from '../components/ui/Badge'
-import type { EstadoPrestamo } from '../types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-const ESTADOS: { value: string; label: string }[] = [
-  { value: '', label: 'Todos' },
-  { value: 'activo', label: 'Activos' },
-  { value: 'en_mora', label: 'En mora' },
-  { value: 'pendiente_aprobacion', label: 'Pendientes' },
-  { value: 'cerrado', label: 'Cerrados' },
-  { value: 'cancelado', label: 'Cancelados' },
+const ESTADOS = [
+  { value: '',                    label: 'Todos'      },
+  { value: 'activo',              label: 'Activos'    },
+  { value: 'en_mora',             label: 'En mora'    },
+  { value: 'pendiente_aprobacion',label: 'Pendientes' },
+  { value: 'cerrado',             label: 'Cerrados'   },
+  { value: 'cancelado',           label: 'Cancelados' },
 ]
 
 function fmt(n: number) {
@@ -25,11 +21,43 @@ function fmtDate(s: string) {
   try { return format(new Date(s), 'dd/MM/yyyy', { locale: es }) } catch { return s }
 }
 
+function estadoBadge(e: string) {
+  if (e === 'activo')               return { bg: 'rgba(34,197,94,.14)',   color: '#4ade80', dot: '#22c55e', label: 'ACTIVO'     }
+  if (e === 'en_mora')              return { bg: 'rgba(239,68,68,.14)',   color: '#f87171', dot: '#ef4444', label: 'EN MORA'    }
+  if (e === 'pendiente_aprobacion') return { bg: 'rgba(234,179,8,.14)',   color: '#fbbf24', dot: '#eab308', label: 'PENDIENTE'  }
+  if (e === 'cerrado')              return { bg: 'rgba(107,114,128,.14)', color: '#9ca3af', dot: '#6b7280', label: 'CERRADO'    }
+  if (e === 'cancelado')            return { bg: 'rgba(107,114,128,.14)', color: '#9ca3af', dot: '#6b7280', label: 'CANCELADO'  }
+  return                                   { bg: 'rgba(107,114,128,.14)', color: '#9ca3af', dot: '#6b7280', label: e.toUpperCase() }
+}
+
+// ── SVGs ──────────────────────────────────────────────────────────────────────
+const IcoPlus = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+)
+const IcoFilter = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+  </svg>
+)
+const IcoChevron = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+)
+const IcoCash = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.15 }}>
+    <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>
+    <path d="M6 12h.01M18 12h.01"/>
+  </svg>
+)
+
 export default function PrestamosList() {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
   const { prestamos, total, loading, error, fetchPrestamos, limpiarError } = usePrestamosStore()
   const [estado, setEstado] = useState('')
-  const [page, setPage] = useState(1)
+  const [page,   setPage]   = useState(1)
 
   useEffect(() => {
     fetchPrestamos({ estado: estado || undefined, page, per_page: 20 })
@@ -40,99 +68,168 @@ export default function PrestamosList() {
   const pages = Math.ceil(total / 20)
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      {/* Cabecera */}
-      <div className="mb-4 flex items-center justify-between">
+    <div style={{ padding: '24px 28px', fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", maxWidth: 900, margin: '0 auto' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '22px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Préstamos</h1>
-          <p className="text-xs text-gray-500">{total} registros</p>
+          <p style={{ fontSize: '10.5px', fontWeight: 700, color: '#374151', letterSpacing: '0.09em', textTransform: 'uppercase', margin: '0 0 5px' }}>
+            CARTERA DE PRÉSTAMOS
+          </p>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#e8eaf0', letterSpacing: '-0.03em', margin: 0, lineHeight: 1.1 }}>
+            Préstamos
+          </h1>
+          <p style={{ fontSize: '11.5px', color: '#4b5563', marginTop: '4px', fontWeight: 500 }}>
+            {total} registros en total
+          </p>
         </div>
-        <Link to="/prestamos/nuevo"
-          className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-          <PlusIcon className="h-4 w-4" />
-          Nuevo
+        <Link
+          to="/prestamos/nuevo"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            color: '#fff', borderRadius: '10px', padding: '9px 16px',
+            fontSize: '13px', fontWeight: 700, textDecoration: 'none',
+            boxShadow: '0 2px 12px rgba(99,102,241,.35)', flexShrink: 0,
+          }}
+        >
+          <IcoPlus /> Nuevo
         </Link>
       </div>
 
-      {/* Filtro de estado */}
-      <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-1">
-        <FunnelIcon className="h-4 w-4 shrink-0 text-gray-400" />
-        {ESTADOS.map(({ value, label }) => (
-          <button
-            key={value}
-            onClick={() => setEstado(value)}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              estado === value
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Filter pills */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '2px' }}>
+        <span style={{ color: '#374151', display: 'flex', flexShrink: 0 }}><IcoFilter /></span>
+        {ESTADOS.map(({ value, label }) => {
+          const active = estado === value
+          return (
+            <button
+              key={value}
+              onClick={() => setEstado(value)}
+              style={{
+                flexShrink: 0, borderRadius: '99px', padding: '5px 13px',
+                fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', transition: 'all .15s',
+                border: active ? 'none' : '1px solid rgba(255,255,255,.1)',
+                background: active ? '#6366f1' : 'transparent',
+                color: active ? '#fff' : '#6b7280',
+                fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif",
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
-      {error && <Alert message={error} onClose={limpiarError} className="mb-4" />}
-
-      {/* Lista */}
-      {loading ? (
-        <div className="flex justify-center py-10"><Spinner size="lg" /></div>
-      ) : prestamos.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-10 text-gray-400">
-          <p className="text-sm">Sin préstamos{estado ? ` con estado "${estado}"` : ''}</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {prestamos.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => navigate(`/prestamos/${p.id}`)}
-              className="flex w-full items-start gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-sm ring-1 ring-gray-100 transition-shadow hover:shadow-md"
-            >
-              {/* Indicador de estado */}
-              <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                p.estado === 'activo' ? 'bg-green-500' :
-                p.estado === 'en_mora' ? 'bg-red-500' :
-                p.estado === 'pendiente_aprobacion' ? 'bg-yellow-400' :
-                'bg-gray-300'
-              }`} />
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{fmt(p.monto)}</p>
-                    <p className="text-xs text-gray-500">
-                      {p.clientes?.nombre ?? '—'} · {p.n_cuotas}×{p.periodicidad}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {p.tasa}% {p.tipo_tasa} · inicio {fmtDate(p.fecha_inicio)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <BadgePrestamo estado={p.estado as EstadoPrestamo} />
-                    {p.saldo_pendiente > 0 && (
-                      <p className="text-xs font-semibold text-gray-700">
-                        Saldo: {fmt(p.saldo_pendiente)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
+      {error && (
+        <div style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <span style={{ fontSize: '13px', color: '#fca5a5' }}>{error}</span>
+          <button onClick={limpiarError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(252,165,165,.6)', display: 'flex', padding: 0 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
       )}
 
-      {/* Paginación */}
+      {/* List */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+          <Spinner size="lg" />
+        </div>
+      ) : prestamos.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '60px 0', color: '#4b5563' }}>
+          <IcoCash />
+          <p style={{ fontSize: '14px', fontWeight: 500, color: '#6b7280', margin: 0 }}>
+            Sin préstamos{estado ? ` con estado "${ESTADOS.find(e => e.value === estado)?.label ?? estado}"` : ''}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {prestamos.map((p) => {
+            const badge = estadoBadge(p.estado)
+            const pct   = p.monto > 0 ? Math.max(0, Math.min(100, ((p.monto - p.saldo_pendiente) / p.monto) * 100)) : 0
+            return (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/prestamos/${p.id}`)}
+                style={{
+                  width: '100%', background: '#161925',
+                  border: '1px solid rgba(255,255,255,.07)',
+                  borderLeft: `3px solid ${badge.dot}`,
+                  borderRadius: '13px', padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: '14px',
+                  cursor: 'pointer', textAlign: 'left',
+                  transition: 'background .12s, box-shadow .15s',
+                  fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif",
+                }}
+                onMouseEnter={e => { const el = e.currentTarget; el.style.background = '#1c1f2e'; el.style.boxShadow = '0 2px 14px rgba(0,0,0,.35)' }}
+                onMouseLeave={e => { const el = e.currentTarget; el.style.background = '#161925'; el.style.boxShadow = 'none' }}
+              >
+                {/* Dot indicator */}
+                <div style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  background: badge.dot, flexShrink: 0,
+                  boxShadow: `0 0 6px ${badge.dot}88`,
+                }} />
+
+                {/* Main info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                    <div>
+                      <p style={{ fontSize: '17px', fontWeight: 800, color: '#e8eaf0', margin: '0 0 3px', letterSpacing: '-0.02em' }}>
+                        {fmt(p.monto)}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.clientes?.nombre ?? '—'}
+                        <span style={{ color: '#374151' }}> · {p.n_cuotas}×{p.periodicidad}</span>
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#374151', margin: '2px 0 0' }}>
+                        {p.tasa}% {p.tipo_tasa} · inicio {fmtDate(p.fecha_inicio)}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', flexShrink: 0 }}>
+                      <span style={{ background: badge.bg, color: badge.color, fontSize: '10px', fontWeight: 700, borderRadius: '6px', padding: '2px 8px' }}>
+                        {badge.label}
+                      </span>
+                      {p.saldo_pendiente > 0 && (
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#9ca3af' }}>
+                          Saldo: {fmt(p.saldo_pendiente)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div style={{ height: '3px', background: 'rgba(255,255,255,.07)', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${pct}%`, height: '100%', borderRadius: '99px',
+                      background: p.estado === 'en_mora' ? '#ef4444' : 'linear-gradient(90deg,#6366f1,#8b5cf6)',
+                      transition: 'width .4s',
+                    }} />
+                  </div>
+                </div>
+
+                <span style={{ color: '#374151', display: 'flex', flexShrink: 0 }}><IcoChevron /></span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
       {pages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
+        <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '8px', padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, color: '#9ca3af', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1, fontFamily: 'inherit' }}
+          >
             ← Anterior
           </button>
-          <span className="text-sm text-gray-500">{page} / {pages}</span>
-          <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
+          <span style={{ fontSize: '12.5px', color: '#6b7280', padding: '0 4px' }}>{page} / {pages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(pages, p + 1))}
+            disabled={page === pages}
+            style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '8px', padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, color: '#9ca3af', cursor: page === pages ? 'not-allowed' : 'pointer', opacity: page === pages ? 0.4 : 1, fontFamily: 'inherit' }}
+          >
             Siguiente →
           </button>
         </div>
