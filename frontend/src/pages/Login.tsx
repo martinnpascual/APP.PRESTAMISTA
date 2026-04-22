@@ -22,7 +22,6 @@ export default function Login() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .lp * { box-sizing: border-box; }
         .lp { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; min-height:100vh; background:#111318; display:flex; align-items:center; justify-content:center; padding:20px; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }

@@ -13,7 +13,7 @@ interface Config {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { padding: '24px 16px', maxWidth: 600, margin: '0 auto' },
+  page: { maxWidth: 600, margin: '0 auto' },
   h1: { fontSize: 22, fontWeight: 700, color: '#e4e6eb', margin: '0 0 4px' },
   sub: { fontSize: 13, color: '#6b7280', margin: '0 0 28px' },
   card: { background: '#1c1e27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 24, marginBottom: 20 },
@@ -92,10 +92,10 @@ export default function Configuracion() {
     setSaving(false)
   }
 
-  if (loading) return <div style={S.page}><p style={{ color: '#6b7280' }}>Cargando...</p></div>
+  if (loading) return <div className="page-container" style={S.page}><p style={{ color: '#6b7280' }}>Cargando...</p></div>
 
   return (
-    <div style={S.page}>
+    <div className="page-container" style={S.page}>
       <h1 style={S.h1}>Configuración</h1>
       <p style={S.sub}>Parámetros globales del negocio</p>
 

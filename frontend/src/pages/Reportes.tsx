@@ -185,18 +185,23 @@ export default function Reportes() {
       {error && <Alert message={error} onClose={() => setError(null)} className="mb-4" />}
 
       {/* Tabs */}
-      <div className="mb-4 grid grid-cols-5 gap-1 rounded-xl bg-gray-100 p-1">
+      <div style={{ marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', borderRadius: '12px', background: 'rgba(255,255,255,.06)', padding: '4px' }}>
         {tabs.map((t) => {
           const Icon = t.icon
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
-                tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+                borderRadius: '8px', padding: '8px 4px', fontSize: '12px', fontWeight: 600,
+                border: 'none', cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit',
+                background: tab === t.id ? '#1c1f2e' : 'transparent',
+                color: tab === t.id ? '#e8eaf0' : '#6b7280',
+                boxShadow: tab === t.id ? '0 1px 4px rgba(0,0,0,.35)' : 'none',
+              }}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4" style={{ color: tab === t.id ? '#a5b4fc' : '#6b7280' }} />
               {t.label}
             </button>
           )
@@ -288,14 +293,18 @@ export default function Reportes() {
                   <p className="text-2xl font-bold text-gray-900">{fmt(recaudacion.total_cobrado)}</p>
                   <p className="text-xs text-gray-400">{recaudacion.cantidad_pagos} pagos</p>
                 </div>
-                <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
+                <div style={{ display: 'flex', gap: '4px', borderRadius: '10px', background: 'rgba(255,255,255,.06)', padding: '4px' }}>
                   {(['dia', 'semana', 'mes'] as const).map((g) => (
                     <button
                       key={g}
                       onClick={() => setAgrupacion(g)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        agrupacion === g ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                      }`}
+                      style={{
+                        borderRadius: '6px', padding: '5px 10px', fontSize: '12px', fontWeight: 600,
+                        border: 'none', cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit',
+                        background: agrupacion === g ? '#1c1f2e' : 'transparent',
+                        color: agrupacion === g ? '#e8eaf0' : '#6b7280',
+                        boxShadow: agrupacion === g ? '0 1px 3px rgba(0,0,0,.3)' : 'none',
+                      }}
                     >
                       {g === 'dia' ? 'Día' : g === 'semana' ? 'Semana' : 'Mes'}
                     </button>

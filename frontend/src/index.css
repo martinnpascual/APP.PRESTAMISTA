@@ -2,6 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Responsive page container ───────────────────────────── */
+.page-container {
+  padding: 24px 28px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  margin: 0 auto;
+}
+@media (max-width: 768px) {
+  .page-container { padding: 16px; }
+}
+
+/* ── Dashboard: main 2-col layout ────────────────────────── */
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 256px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .dash-main-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Dashboard: KPI asymmetric grid ─────────────────────── */
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+@media (max-width: 640px) {
+  .dash-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dash-kpi-hero {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    height: auto !important;
+  }
+}
+
+/* ── Dashboard: bottom metrics strip ────────────────────── */
+.dash-bottom-strip {
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: #161925;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+@media (max-width: 640px) {
+  .dash-bottom-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 0;
+    padding: 14px 16px;
+  }
+  .dash-bottom-strip > div {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+  .dash-bottom-strip > div:nth-child(2n) {
+    padding-left: 16px !important;
+    border-left: 1px solid rgba(255,255,255,.05) !important;
+  }
+}
+
+/* ── Dashboard: sidebar actions block ───────────────────── */
+@media (max-width: 900px) {
+  .dash-sidebar { position: static !important; }
+}
+
+/* ── Cobros: card inner flex ─────────────────────────────── */
+@media (max-width: 480px) {
+  .cobro-card-inner {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .cobro-card-actions {
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+  .cobro-amount {
+    font-size: 22px !important;
+  }
+}
+
+/* ── Filter pills scrollable row ────────────────────────── */
+.pills-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pills-row::-webkit-scrollbar { display: none; }
+
 @layer components {
   /* ── Inputs / Selects / Textareas ────────────────────────── */
   .field-input {

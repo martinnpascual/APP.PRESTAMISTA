@@ -80,7 +80,6 @@ export default function Layout() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         body { margin:0; background:#0f1117; font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
 
@@ -193,7 +192,7 @@ export default function Layout() {
         .sb-logo-text { font-size:14px; font-weight:800; color:#e8eaf0; letter-spacing:-0.02em; }
         .sb-logo-sub  { font-size:10px; font-weight:500; color:#4b5563; margin-top:1px; letter-spacing:0.02em; }
 
-        .sb-section-label { font-size:10px; font-weight:700; color:#374151; letter-spacing:0.08em; text-transform:uppercase; padding:14px 16px 6px; }
+        .sb-section-label { font-size:10px; font-weight:700; color:#6b7280; letter-spacing:0.08em; text-transform:uppercase; padding:14px 16px 6px; }
         .sb-nav { flex:1; padding:10px 8px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; }
         .sb-link { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; text-decoration:none; font-size:13px; font-weight:500; color:#6b7280; transition:background .15s,color .15s; position:relative; }
         .sb-link:hover { background:rgba(255,255,255,.05); color:#d1d5db; }
@@ -234,6 +233,29 @@ export default function Layout() {
         .notif-btn:hover { background:rgba(255,255,255,.05); color:#e8eaf0; }
         a { color:inherit; text-decoration:none; }
         @keyframes spin { to { transform:rotate(360deg) } }
+
+        /* ═══════════════════════════════════════
+           GLOBAL FIXES
+           ═══════════════════════════════════════ */
+        /* Section label color fix — #374151 is nearly invisible on dark bg */
+        [style*="374151"] { color:#6b7280 !important; }
+
+        /* Responsive page padding — override inline padding on mobile */
+        @media(max-width:768px){
+          .page-scroll>div:first-child { padding-left:16px!important; padding-right:16px!important; }
+          .page-scroll>div:first-child h1 { font-size:22px!important; }
+        }
+
+        /* Prestamos filter pills responsive */
+        @media(max-width:640px){
+          .filter-pills-row { flex-wrap:nowrap; overflow-x:auto; }
+        }
+
+        /* CobrosHoy card: stack on very small screens */
+        @media(max-width:460px){
+          .cobro-card-inner   { flex-direction:column!important; }
+          .cobro-card-actions { flex-direction:row!important; flex-wrap:wrap!important; align-items:flex-start!important; }
+        }
       `}</style>
 
       <div className="app-wrap">

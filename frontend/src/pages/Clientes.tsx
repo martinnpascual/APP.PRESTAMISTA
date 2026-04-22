@@ -64,8 +64,6 @@ export default function Clientes() {
 
   const S = {
     wrap: {
-      padding: '24px 28px',
-      fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif",
       maxWidth: 900,
       margin: '0 auto',
     } as React.CSSProperties,
@@ -107,7 +105,7 @@ export default function Clientes() {
   }
 
   return (
-    <div style={S.wrap}>
+    <div className="page-container" style={S.wrap}>
       {/* Header */}
       <div style={S.header}>
         <div>

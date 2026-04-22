@@ -8,7 +8,8 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 }
 function today() {
-  return new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const s = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 // ── Inline SVGs ────────────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ export default function Dashboard() {
     : '0.0'
 
   return (
-    <div style={{ padding: '24px 28px', fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", maxWidth: 1100, margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: 1100 }}>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: '22px' }}>
@@ -157,7 +158,7 @@ export default function Dashboard() {
             <IcoTrend /> +12.5% vs mes anterior
           </span>
         </div>
-        <p style={{ fontSize: '12px', color: '#374151', marginTop: '4px', textTransform: 'capitalize', fontWeight: 400 }}>
+        <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', fontWeight: 400 }}>
           {today()}
         </p>
       </div>
@@ -190,7 +191,7 @@ export default function Dashboard() {
       {kpis && (
         <>
           {/* ── Main grid: content + sidebar ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 256px', gap: '20px', alignItems: 'start' }}>
+          <div className="dash-main-grid">
 
             {/* ═══ LEFT: KPIs + Recientes ═══ */}
             <div>
@@ -199,10 +200,10 @@ export default function Dashboard() {
               </p>
 
               {/* Asymmetric KPI grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gridTemplateRows: 'auto auto', gap: '10px', marginBottom: '24px' }}>
+              <div className="dash-kpi-grid">
 
                 {/* Capital Prestado — spans 2 rows */}
-                <Link to="/prestamos" style={{ textDecoration: 'none', gridRow: '1 / 3' }}>
+                <Link to="/prestamos" className="dash-kpi-hero" style={{ textDecoration: 'none', gridRow: '1 / 3' }}>
                   <div style={{ height: '100%', background: 'linear-gradient(160deg, #181b2d 0%, #111422 100%)', border: '1px solid rgba(99,102,241,.28)', borderRadius: '16px', padding: '22px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .2s, box-shadow .2s', boxSizing: 'border-box' }}
                     onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = 'rgba(99,102,241,.5)'; el.style.boxShadow = '0 4px 24px rgba(99,102,241,.12)' }}
                     onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = 'rgba(99,102,241,.28)'; el.style.boxShadow = 'none' }}>
@@ -358,7 +359,7 @@ export default function Dashboard() {
             </div>
 
             {/* ═══ RIGHT: Actions + Stats ═══ */}
-            <div style={{ position: 'sticky', top: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="dash-sidebar" style={{ position: 'sticky', top: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
               {/* Acciones Rápidas */}
               <div style={{ background: '#161925', border: '1px solid rgba(255,255,255,.07)', borderRadius: '16px', padding: '18px' }}>
@@ -392,7 +393,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Bottom metrics strip ── */}
-          <div style={{ marginTop: '20px', padding: '14px 20px', background: '#161925', border: '1px solid rgba(255,255,255,.06)', borderRadius: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0' }}>
+          <div className="dash-bottom-strip">
             {[
               { label: 'Capital prestado',  value: fmt(kpis.capital_total_prestado),  color: '#a5b4fc' },
               { label: 'Saldo pendiente',   value: fmt(kpis.saldo_total_pendiente),   color: '#34d399' },

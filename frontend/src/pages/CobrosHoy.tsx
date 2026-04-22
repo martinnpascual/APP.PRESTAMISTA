@@ -189,7 +189,7 @@ export default function CobrosHoy() {
   }
 
   return (
-    <div style={{ padding: '24px 28px', fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", maxWidth: 720, margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: 720 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '22px', gap: '12px', flexWrap: 'wrap' }}>
@@ -200,8 +200,8 @@ export default function CobrosHoy() {
           <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#e8eaf0', letterSpacing: '-0.03em', margin: 0, lineHeight: 1.1 }}>
             Cobros
           </h1>
-          <p style={{ fontSize: '11.5px', color: '#4b5563', marginTop: '4px', fontWeight: 500, textTransform: 'capitalize' }}>
-            {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · {cobros.length} cuotas
+          <p style={{ fontSize: '11.5px', color: '#4b5563', marginTop: '4px', fontWeight: 500 }}>
+            {(() => { const s = format(new Date(), "EEEE d 'de' MMMM", { locale: es }); return s.charAt(0).toUpperCase() + s.slice(1) })()} · {cobros.length} cuotas
           </p>
         </div>
         <button
@@ -353,7 +353,7 @@ export default function CobrosHoy() {
                         padding: '14px 16px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                      <div className="cobro-card-inner" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
                         {/* Left: client info */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
@@ -380,7 +380,7 @@ export default function CobrosHoy() {
                         </div>
 
                         {/* Right: amount + actions */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
+                        <div className="cobro-card-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
                           <p style={{ fontSize: '18px', fontWeight: 800, color: '#e8eaf0', margin: 0, letterSpacing: '-0.02em' }}>
                             {fmt(calcTotal(c))}
                           </p>

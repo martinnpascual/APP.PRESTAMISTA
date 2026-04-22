@@ -22,7 +22,7 @@ const TIPO_ICON: Record<string, string> = {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { padding: '24px 16px', maxWidth: 700, margin: '0 auto' },
+  page: { maxWidth: 700, margin: '0 auto' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   h1: { fontSize: 22, fontWeight: 700, color: '#e4e6eb', margin: 0 },
   btnSm: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 7, padding: '7px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
@@ -83,7 +83,7 @@ export default function Notificaciones() {
   const unread = items.filter(n => !n.enviado).length
 
   return (
-    <div style={S.page}>
+    <div className="page-container" style={S.page}>
       <div style={S.header}>
         <div>
           <h1 style={S.h1}>🔔 Notificaciones {unread > 0 && <span style={{ fontSize: 14, color: '#6b7280' }}>({unread} sin leer)</span>}</h1>

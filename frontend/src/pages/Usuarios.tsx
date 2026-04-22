@@ -197,12 +197,15 @@ export default function Usuarios() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-2 border-b border-gray-100 pb-2">
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,.07)', paddingBottom: '8px' }}>
         {(['usuarios', 'logs', 'backups'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-              tab === t ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:text-gray-800'
-            }`}>
+            style={{
+              borderRadius: '8px', padding: '6px 14px', fontSize: '14px', fontWeight: 500,
+              border: 'none', cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit',
+              background: tab === t ? 'rgba(99,102,241,.15)' : 'transparent',
+              color: tab === t ? '#a5b4fc' : '#6b7280',
+            }}>
             {t === 'usuarios' ? '👤 Usuarios' : t === 'logs' ? '📋 Logs del sistema' : '💾 Backups'}
           </button>
         ))}
