@@ -114,9 +114,11 @@ async def condonar_cuota(
 )
 async def historial_dia(
     fecha: str | None = Query(None, description="Fecha YYYY-MM-DD, default hoy"),
+    desde: str | None = Query(None, description="Fecha inicio YYYY-MM-DD"),
+    hasta: str | None = Query(None, description="Fecha fin YYYY-MM-DD"),
     user: AuthUser = Depends(get_current_user),
 ):
-    """Todos los pagos registrados en una fecha dada, con info del cliente."""
+    """Todos los pagos registrados en una fecha o rango dado, con info del cliente."""
     supabase = get_supabase()
-    items = svc.historial_pagos_dia(supabase, user, fecha)
+    items = svc.historial_pagos_dia(supabase, user, fecha, desde, hasta)
     return ok(items)

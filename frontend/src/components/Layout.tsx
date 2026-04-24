@@ -208,6 +208,8 @@ export default function Layout() {
         .sb-uemail { font-size:10.5px; color:#4b5563; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .sb-logout { background:none; border:none; cursor:pointer; color:#4b5563; padding:6px; border-radius:6px; display:flex; align-items:center; transition:background .15s,color .15s; }
         .sb-logout:hover { background:rgba(239,68,68,.1); color:#f87171; }
+        .mob-logout { display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; background:none; border:none; cursor:pointer; color:#6b7280; font-size:12px; font-weight:600; font-family:inherit; transition:background .15s,color .15s; }
+        .mob-logout:hover { background:rgba(239,68,68,.12); color:#f87171; }
 
         /* ── main ── */
         .main-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
@@ -295,6 +297,17 @@ export default function Layout() {
                 Configuración
               </NavLink>
             )}
+
+            <div className="sb-divider" />
+            <button
+              onClick={handleSignOut}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 10px', borderRadius:9, background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:500, color:'#6b7280', width:'100%', transition:'background .15s,color .15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='rgba(239,68,68,.1)'; (e.currentTarget as HTMLButtonElement).style.color='#f87171' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='none'; (e.currentTarget as HTMLButtonElement).style.color='#6b7280' }}
+            >
+              <span className="sb-link-icon"><IcoLogout /></span>
+              Cerrar sesión
+            </button>
           </nav>
 
           <div className="sb-user">
@@ -322,8 +335,9 @@ export default function Layout() {
                 <IcoBell />
                 {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
               </NavLink>
-              <button className="sb-logout" onClick={handleSignOut}>
+              <button className="mob-logout" onClick={handleSignOut}>
                 <IcoLogout />
+                Salir
               </button>
             </div>
           </header>

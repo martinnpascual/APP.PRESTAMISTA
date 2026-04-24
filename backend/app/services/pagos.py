@@ -293,14 +293,23 @@ def condonar_cuota(supabase: Client, user: AuthUser, cuota_id: str) -> dict:
     return {"ok": True, "cuota_id": cuota_id, "saldo_condonado": saldo_cuota}
 
 
-def historial_pagos_dia(supabase: Client, user: AuthUser, fecha: str | None = None) -> list[dict]:
-    """Todos los pagos registrados en una fecha, con info del cliente y cuota."""
+def historial_pagos_dia(
+    supabase: Client,
+    user: AuthUser,
+    fecha: str | None = None,
+    desde: str | None = None,
+    hasta: str | None = None,
+) -> list[dict]:
+    """Todos los pagos registrados en una fecha o rango, con info del cliente y cuota."""
     from datetime import date
-    fecha_str = fecha or date.today().isoformat()
+    if desde and hasta:
+        fecha_inicio, fecha_fin = desde, hasta
+    else:
+        fecha_inicio = fecha_fin = fecha or date.today().isoformat()
     q = (supabase.table("pagos")
          .select("*, cuotas(numero, fecha_vencimiento), clientes(nombre, zona), profiles!pagos_registrado_por_fkey(nombre)")
-         .gte("fecha_pago", f"{fecha_str}T00:00:00")
-         .lte("fecha_pago", f"{fecha_str}T23:59:59")
+         .gte("fecha_pago", f"{fecha_inicio}T00:00:00")
+         .lte("fecha_pago", f"{fecha_fin}T23:59:59")
          .order("fecha_pago", desc=True))
     if user.rol == "cobrador":
         q = q.eq("registrado_por", user.id)

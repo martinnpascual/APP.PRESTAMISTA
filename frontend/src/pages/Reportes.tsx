@@ -19,6 +19,21 @@ function fmt(n: number) {
 }
 
 type Tab = 'kpis' | 'cartera' | 'recaudacion' | 'mora' | 'historial'
+type PeriodoHistorial = 'dia' | 'semana' | 'mes' | 'custom'
+
+function calcPeriodDates(periodo: PeriodoHistorial, customDate: string): { desde: string; hasta: string } {
+  const today = new Date()
+  const hoy = today.toISOString().split('T')[0]
+  if (periodo === 'custom') return { desde: customDate, hasta: customDate }
+  if (periodo === 'dia') return { desde: hoy, hasta: hoy }
+  if (periodo === 'semana') {
+    const d = new Date(today)
+    d.setDate(today.getDate() - today.getDay())
+    return { desde: d.toISOString().split('T')[0], hasta: hoy }
+  }
+  const d = new Date(today.getFullYear(), today.getMonth(), 1)
+  return { desde: d.toISOString().split('T')[0], hasta: hoy }
+}
 
 interface KPIsExtended {
   capital_total_prestado: number
@@ -95,6 +110,7 @@ export default function Reportes() {
   const [agrupacion, setAgrupacion] = useState<'dia' | 'semana' | 'mes'>('semana')
   const [historial, setHistorial] = useState<HistorialPago[]>([])
   const [historialFecha, setHistorialFecha] = useState(new Date().toISOString().split('T')[0])
+  const [periodoHistorial, setPeriodoHistorial] = useState<PeriodoHistorial>('dia')
 
   const cargarTab = async (t: Tab) => {
     setLoading(true)
@@ -113,7 +129,8 @@ export default function Reportes() {
         const data = await apiGet<MoraData>('/reportes/mora')
         setMora(data)
       } else if (t === 'historial') {
-        const data = await apiGet<HistorialPago[]>(`/pagos/historial/dia?fecha=${historialFecha}`)
+        const { desde, hasta } = calcPeriodDates(periodoHistorial, historialFecha)
+        const data = await apiGet<HistorialPago[]>(`/pagos/historial/dia?desde=${desde}&hasta=${hasta}`)
         setHistorial(data)
       }
     } catch (e) {
@@ -129,7 +146,7 @@ export default function Reportes() {
   }, [agrupacion])
   useEffect(() => {
     if (tab === 'historial') cargarTab('historial')
-  }, [historialFecha])
+  }, [historialFecha, periodoHistorial])
 
   const descargarCSV = async (tipo: 'cartera' | 'recaudacion' | 'mora') => {
     try {
@@ -333,24 +350,45 @@ export default function Reportes() {
             </div>
           )}
 
-          {/* Historial del día */}
+          {/* Historial */}
           {tab === 'historial' && (
             <div>
-              <div className="mb-4 flex items-center gap-3">
-                <input
-                  type="date"
-                  value={historialFecha}
-                  onChange={e => { setHistorialFecha(e.target.value); }}
-                  className="field-input max-w-[160px]"
-                />
-                <button onClick={() => cargarTab('historial')}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                  Ver
-                </button>
-                <span className="text-sm text-gray-500">{historial.length} pagos</span>
-                <span className="text-sm font-bold text-green-700">
-                  Total: {fmt(historial.reduce((s, p) => s + p.monto, 0))}
-                </span>
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div style={{ display: 'flex', gap: '4px', borderRadius: '10px', background: 'rgba(255,255,255,.06)', padding: '4px' }}>
+                    {(['dia', 'semana', 'mes', 'custom'] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPeriodoHistorial(p)}
+                        style={{
+                          borderRadius: '6px', padding: '5px 10px', fontSize: '12px', fontWeight: 600,
+                          border: 'none', cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit',
+                          background: periodoHistorial === p ? '#1c1f2e' : 'transparent',
+                          color: periodoHistorial === p ? '#e8eaf0' : '#6b7280',
+                          boxShadow: periodoHistorial === p ? '0 1px 3px rgba(0,0,0,.3)' : 'none',
+                        }}
+                      >
+                        {p === 'dia' ? 'Hoy' : p === 'semana' ? 'Semana' : p === 'mes' ? 'Mes' : 'Fecha'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-gray-500">{historial.length} pagos · </span>
+                    <span className="text-sm font-bold text-green-700">
+                      {fmt(historial.reduce((s, p) => s + p.monto, 0))}
+                    </span>
+                  </div>
+                </div>
+                {periodoHistorial === 'custom' && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={historialFecha}
+                      onChange={e => setHistorialFecha(e.target.value)}
+                      className="field-input max-w-[160px]"
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 {historial.map(p => (
