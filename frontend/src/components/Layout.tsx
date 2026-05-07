@@ -124,8 +124,9 @@ export default function Layout() {
         .ring-orange-200        { --tw-ring-color:rgba(249,115,22,.22) !important }
         .bg-blue-50             { background:rgba(99,102,241,.08) !important }
         /* Semantic text */
-        .text-green-600,.text-green-800 { color:#4ade80 !important }
+        .text-green-600,.text-green-700,.text-green-800 { color:#4ade80 !important }
         .text-red-600,.text-red-700,.text-red-800 { color:#f87171 !important }
+        .text-orange-600,.text-orange-700 { color:#fb923c !important }
         .text-blue-600          { color:#818cf8 !important }
         .text-blue-500          { color:#a5b4fc !important }
         /* Buttons — map blue→indigo */

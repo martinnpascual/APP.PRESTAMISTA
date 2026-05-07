@@ -63,7 +63,10 @@ def listar_prestamos(
     if cliente_id:
         query = query.eq("cliente_id", cliente_id)
     if estado:
-        query = query.eq("estado", estado)
+        if "," in estado:
+            query = query.in_("estado", [e.strip() for e in estado.split(",")])
+        else:
+            query = query.eq("estado", estado)
 
     result = (
         query

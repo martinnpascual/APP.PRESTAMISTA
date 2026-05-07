@@ -188,6 +188,37 @@ export default function Dashboard() {
         </div>
       )}
 
+      {kpis && kpis.monto_en_mora > 0 && (
+        <Link to="/cobros" style={{ textDecoration: 'none', display: 'block', marginBottom: '18px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(239,68,68,.12), rgba(239,68,68,.06))',
+            border: '1px solid rgba(239,68,68,.3)',
+            borderLeft: '4px solid #ef4444',
+            borderRadius: '12px', padding: '12px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+            cursor: 'pointer', transition: 'border-color .15s',
+          }}
+            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(239,68,68,.55)'}
+            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(239,68,68,.3)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px' }}>🚨</span>
+              <div>
+                <p style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: '#f87171' }}>
+                  {kpis.clientes_en_mora} cliente{kpis.clientes_en_mora !== 1 ? 's' : ''} en mora — {fmt(kpis.monto_en_mora)} pendiente
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                  Ir a cobros pendientes →
+                </p>
+              </div>
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+        </Link>
+      )}
+
       {kpis && (
         <>
           {/* ── Main grid: content + sidebar ── */}

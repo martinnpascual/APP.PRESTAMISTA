@@ -230,8 +230,10 @@ export default function PrestamoDetalle() {
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
           <div>
+            <p className="text-xs font-semibold text-gray-400 mb-0.5">
+              {p.clientes?.nombre ?? p.cliente_nombre ?? '—'}
+            </p>
             <h1 className="text-xl font-bold text-gray-900">{fmt(p.monto)}</h1>
-            <p className="text-xs text-gray-500">{p.clientes?.nombre ?? '—'}</p>
           </div>
         </div>
         <BadgePrestamo estado={p.estado as EstadoPrestamo} />
@@ -335,8 +337,14 @@ export default function PrestamoDetalle() {
                 c.estado === 'mora' ? 'ring-red-200 bg-red-50/50' : ''
               }`}
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                {c.numero}
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                c.estado === 'pagada' ? 'bg-green-100 text-green-700' :
+                c.estado === 'mora'   ? 'bg-red-100 text-red-600' :
+                c.estado === 'pago_parcial' ? 'bg-orange-100 text-orange-600' :
+                c.estado === 'condonada'    ? 'bg-gray-100 text-gray-400 line-through' :
+                'bg-blue-50 text-blue-600'
+              }`}>
+                {c.estado === 'pagada' ? '✓' : c.numero}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">

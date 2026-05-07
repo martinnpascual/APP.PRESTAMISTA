@@ -26,10 +26,30 @@ interface ResumenCobrador {
 }
 
 function semaforoBadge(s: string) {
-  if (s === 'verde')   return { bg: 'rgba(34,197,94,.14)',  color: '#4ade80', label: 'AL DÍA'    }
-  if (s === 'naranja') return { bg: 'rgba(249,115,22,.14)', color: '#fb923c', label: 'ATRASADO'  }
-  if (s === 'rojo')    return { bg: 'rgba(239,68,68,.14)',  color: '#f87171', label: 'EN MORA'   }
-  return                      { bg: 'rgba(107,114,128,.14)',color: '#9ca3af', label: s           }
+  if (s === 'amarillo' || s === 'verde') return { bg: 'rgba(234,179,8,.14)',   color: '#fbbf24', label: 'VENCE HOY' }
+  if (s === 'naranja')                   return { bg: 'rgba(249,115,22,.14)', color: '#fb923c', label: 'ATRASADO'  }
+  if (s === 'rojo')                      return { bg: 'rgba(239,68,68,.14)',  color: '#f87171', label: 'EN MORA'   }
+  return                                        { bg: 'rgba(107,114,128,.14)',color: '#9ca3af', label: s           }
+}
+
+function urgencyStyle(diasAtraso: number, semaforo: string): React.CSSProperties {
+  if (semaforo === 'rojo' || diasAtraso > 30) return {
+    borderLeft: '3px solid #ef4444',
+    border: '1px solid rgba(239,68,68,.3)',
+  }
+  if (diasAtraso > 14) return {
+    borderLeft: '3px solid #f97316',
+    border: '1px solid rgba(249,115,22,.28)',
+  }
+  if (diasAtraso > 0) return {
+    borderLeft: '3px solid #fb923c',
+    border: '1px solid rgba(249,115,22,.18)',
+  }
+  // Vence hoy
+  return {
+    borderLeft: '3px solid #fbbf24',
+    border: '1px solid rgba(234,179,8,.2)',
+  }
 }
 
 // ── Inline SVGs ───────────────────────────────────────────────────────────────
@@ -342,15 +362,15 @@ export default function CobrosHoy() {
                 {items.map(c => {
                   const sem = c.semaforo ? semaforoBadge(c.semaforo) : null
                   const hasMora = (c.recargo_mora ?? 0) > 0
+                  const dias = c.dias_atraso ?? 0
                   return (
                     <div
                       key={c.cuota_id}
                       style={{
                         background: '#161925',
-                        border: `1px solid ${c.semaforo === 'rojo' ? 'rgba(239,68,68,.25)' : c.semaforo === 'naranja' ? 'rgba(249,115,22,.22)' : 'rgba(255,255,255,.07)'}`,
-                        borderLeft: `3px solid ${c.semaforo === 'rojo' ? '#ef4444' : c.semaforo === 'naranja' ? '#f97316' : '#22c55e'}`,
                         borderRadius: '13px',
                         padding: '14px 16px',
+                        ...urgencyStyle(dias, c.semaforo ?? ''),
                       }}
                     >
                       <div className="cobro-card-inner" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
@@ -366,10 +386,15 @@ export default function CobrosHoy() {
                               </span>
                             )}
                           </div>
-                          <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 3px' }}>
-                            Cuota {c.numero} · vence {new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-AR')}
-                            {(c.dias_atraso ?? 0) > 0 && (
-                              <span style={{ color: '#f87171', fontWeight: 600 }}> (+{c.dias_atraso}d)</span>
+                          <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span>Cuota {c.numero} · vence {new Date(c.fecha_vencimiento + 'T12:00:00').toLocaleDateString('es-AR')}</span>
+                            {dias > 0 && (
+                              <span style={{
+                                background: dias > 30 ? 'rgba(239,68,68,.15)' : dias > 14 ? 'rgba(249,115,22,.15)' : 'rgba(249,115,22,.1)',
+                                color: dias > 30 ? '#f87171' : '#fb923c',
+                                fontWeight: 700, fontSize: '10.5px',
+                                borderRadius: '5px', padding: '1px 6px', flexShrink: 0,
+                              }}>+{dias}d</span>
                             )}
                           </p>
                           {c.direccion && (

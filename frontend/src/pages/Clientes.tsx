@@ -219,6 +219,11 @@ export default function Clientes() {
                       {c.prestamos_en_mora} mora
                     </span>
                   )}
+                  {(c.prestamos_activos ?? 0) === 0 && !hasMora && !(c.total_adeudado ?? 0) && (
+                    <span style={{ background: 'rgba(107,114,128,.1)', color: '#4b5563', fontSize: '10px', fontWeight: 600, borderRadius: '6px', padding: '2px 8px' }}>
+                      Sin préstamos
+                    </span>
+                  )}
                   <span style={{ color: '#374151', display: 'flex' }}><IcoChevron /></span>
                 </div>
               </button>

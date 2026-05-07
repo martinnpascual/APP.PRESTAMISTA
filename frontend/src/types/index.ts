@@ -82,6 +82,9 @@ export interface Prestamo {
   created_at: string
   // relaciones embebidas opcionales
   clientes?: Cliente
+  // campos aplanados devueltos por el endpoint de detalle
+  cliente_nombre?: string
+  cliente_dni?: string
 }
 
 export interface Cuota {

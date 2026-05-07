@@ -211,9 +211,8 @@ def mora_detallada(supabase: Client) -> dict:
             "id, prestamo_id, numero, fecha_vencimiento,"
             " monto, monto_pagado, recargo_mora, dias_mora,"
             " prestamos!inner(cliente_id, cobrador_id, saldo_pendiente,"
-            "  clientes(nombre, dni, telefono, zona),"
-            "  profiles!prestamos_cobrador_id_fkey(nombre)"
-            " )"
+            " clientes(nombre, dni, telefono, zona),"
+            " profiles!prestamos_cobrador_id_fkey(nombre))"
         )
         .eq("estado", "mora")
         .order("dias_mora", desc=True)

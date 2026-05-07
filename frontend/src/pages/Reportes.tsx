@@ -235,7 +235,7 @@ export default function Reportes() {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <KpiCard label="Capital prestado" value={fmt(kpis.capital_total_prestado)} color="blue" />
                 <KpiCard label="Saldo pendiente" value={fmt(kpis.saldo_total_pendiente)} color="indigo" />
-                <KpiCard label="Cobrado hoy" value={fmt(kpis.cobrado_hoy)} color="green" />
+                <KpiCard label="Cobrado hoy" value={fmt(kpis.cobrado_hoy)} color={kpis.cobrado_hoy > 0 ? "green" : "gray"} />
                 <KpiCard label="Préstamos activos" value={String(kpis.prestamos_activos)} color="gray" />
                 <KpiCard label="Clientes activos" value={String(kpis.clientes_activos)} color="gray" />
                 <KpiCard label="En mora" value={String(kpis.clientes_en_mora)} color="red" />
