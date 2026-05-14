@@ -10,8 +10,9 @@ Endpoints:
   GET    /clientes/{id}/historial — historial completo préstamos + pagos
 """
 import logging
+import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 
 from app.db.supabase import get_supabase
 from app.middleware.auth import AuthUser, get_current_user, require_admin
@@ -167,6 +168,88 @@ async def eliminar_cliente(
     supabase = get_supabase()
     svc.eliminar_cliente(supabase, user, cliente_id)
     return ok({"desactivado": True, "cliente_id": cliente_id})
+
+
+# ---------------------------------------------------------------------------
+# POST /clientes/{id}/foto — Subir foto del cliente
+# ---------------------------------------------------------------------------
+@router.post(
+    "/{cliente_id}/foto",
+    response_model=ApiResponse[dict],
+    summary="Subir foto del cliente (admin)",
+)
+async def subir_foto(
+    cliente_id: str,
+    file: UploadFile = File(...),
+    user: AuthUser = Depends(require_admin),
+):
+    """
+    Sube una imagen al bucket 'cliente-fotos' de Supabase Storage
+    y guarda la URL pública en el registro del cliente.
+    Formatos permitidos: JPEG, PNG, WEBP. Tamaño máximo: 5 MB.
+    """
+    supabase = get_supabase()
+
+    ALLOWED = {"image/jpeg", "image/png", "image/webp"}
+    MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+
+    if file.content_type not in ALLOWED:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Formato no permitido. Use JPEG, PNG o WEBP.")
+
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Archivo demasiado grande. Máximo 5 MB.")
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "jpg"
+    path = f"{cliente_id}/{uuid.uuid4()}.{ext}"
+
+    supabase.storage.from_("cliente-fotos").upload(
+        path,
+        content,
+        {"content-type": file.content_type},
+    )
+
+    public_url = supabase.storage.from_("cliente-fotos").get_public_url(path)
+
+    supabase.table("clientes").update({"foto_url": public_url}).eq("id", cliente_id).execute()
+
+    return ok({"foto_url": public_url})
+
+
+# ---------------------------------------------------------------------------
+# DELETE /clientes/{id}/foto — Eliminar foto del cliente
+# ---------------------------------------------------------------------------
+@router.delete(
+    "/{cliente_id}/foto",
+    response_model=ApiResponse[dict],
+    summary="Eliminar foto del cliente (admin)",
+)
+async def eliminar_foto(
+    cliente_id: str,
+    user: AuthUser = Depends(require_admin),
+):
+    """Elimina la foto del cliente de Storage y limpia el campo foto_url."""
+    supabase = get_supabase()
+
+    cliente_r = supabase.table("clientes").select("foto_url").eq("id", cliente_id).single().execute()
+    if not cliente_r.data or not cliente_r.data.get("foto_url"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="El cliente no tiene foto.")
+
+    foto_url: str = cliente_r.data["foto_url"]
+    # Extraer path relativo desde la URL pública
+    bucket_marker = "cliente-fotos/"
+    if bucket_marker in foto_url:
+        path = foto_url.split(bucket_marker, 1)[1].split("?")[0]
+        try:
+            supabase.storage.from_("cliente-fotos").remove([path])
+        except Exception as e:
+            logger.warning("No se pudo eliminar archivo de Storage: %s", e)
+
+    supabase.table("clientes").update({"foto_url": None}).eq("id", cliente_id).execute()
+    return ok({"eliminado": True})
 
 
 # ---------------------------------------------------------------------------

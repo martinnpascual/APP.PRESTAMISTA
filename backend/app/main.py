@@ -213,7 +213,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
-from app.routers import auth, clientes, cobros, config, documentos, notificaciones, pagos, prestamos, reportes, telegram, usuarios
+from app.routers import auth, clientes, cobros, config, documentos, notificaciones, pagos, portal, prestamos, reportes, telegram, usuarios
 
 app.include_router(auth.router,            prefix="/auth",            tags=["auth"])
 app.include_router(clientes.router,        prefix="/clientes",        tags=["clientes"])
@@ -226,6 +226,7 @@ app.include_router(telegram.router,        prefix="/telegram",        tags=["tel
 app.include_router(usuarios.router,        prefix="/usuarios",        tags=["usuarios"])
 app.include_router(config.router,          prefix="/config",          tags=["configuración"])
 app.include_router(notificaciones.router,  prefix="/notificaciones",  tags=["notificaciones"])
+app.include_router(portal.router,          prefix="/portal",          tags=["portal deudor"])
 
 # ---------------------------------------------------------------------------
 # Endpoints base

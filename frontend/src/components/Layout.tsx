@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { apiGet } from '../services/api'
+import GlobalSearch from './GlobalSearch'
 
 // ── SVG icons inline (no deps) ─────────────────────────────────────────────
 const IcoHome = () => (
@@ -54,6 +55,12 @@ const NAV = [
   { to: '/usuarios',  label: 'Usuarios',      Icon: IcoCog, adminOnly: true },
 ]
 
+const IcoSearch = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+)
+
 export default function Layout() {
   const { user, signOut, session } = useAuthStore()
   const navigate = useNavigate()
@@ -61,6 +68,7 @@ export default function Layout() {
   const name = user?.email?.split('@')[0] ?? 'Usuario'
   const initial = name[0]?.toUpperCase() ?? 'U'
   const [unread, setUnread] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     apiGet<{ total: number }>('/notificaciones/conteo').then(d => {
@@ -76,6 +84,18 @@ export default function Layout() {
 
   const handleSignOut = async () => { await signOut(); navigate('/login') }
   const items = NAV.filter(n => !n.adminOnly || isAdmin)
+
+  // Atajo Ctrl+K / Cmd+K para abrir búsqueda global
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(s => !s)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <>
@@ -272,6 +292,25 @@ export default function Layout() {
             </div>
           </div>
 
+          {/* Búsqueda rápida */}
+          <div style={{ padding: '8px 10px 4px' }}>
+            <button
+              onClick={() => setSearchOpen(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)',
+                borderRadius: 9, padding: '7px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                color: '#4b5563', fontSize: 12.5, transition: 'background .15s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.07)'}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.04)'}
+            >
+              <IcoSearch />
+              <span style={{ flex: 1, textAlign: 'left' }}>Buscar...</span>
+              <kbd style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#374151' }}>⌘K</kbd>
+            </button>
+          </div>
+
           <nav className="sb-nav">
             <div className="sb-section-label">Navegación</div>
             {items.map(n => (
@@ -332,6 +371,9 @@ export default function Layout() {
               <span className="mob-logo-text">prestamos.app</span>
             </div>
             <div className="mob-actions">
+              <button onClick={() => setSearchOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: 6, display: 'flex', alignItems: 'center', borderRadius: 6 }}>
+                <IcoSearch />
+              </button>
               <NavLink to="/notificaciones" style={{ position: 'relative', display: 'flex', alignItems: 'center', color: '#6b7280', padding: 6 }}>
                 <IcoBell />
                 {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
@@ -365,6 +407,9 @@ export default function Layout() {
           </NavLink>
         </nav>
       </div>
+
+      {/* ── Búsqueda global ── */}
+      {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
     </>
   )
 }

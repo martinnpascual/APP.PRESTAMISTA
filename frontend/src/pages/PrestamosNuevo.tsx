@@ -38,7 +38,7 @@ export default function PrestamosNuevo() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [form, setForm] = useState<PrestamoCalcularForm>({
+  const [form, setForm] = useState<PrestamoCalcularForm & { tasa_mora_diaria?: number }>({
     cliente_id: searchParams.get('cliente_id') ?? '',
     monto: 0,
     tasa: 5,
@@ -47,6 +47,7 @@ export default function PrestamosNuevo() {
     n_cuotas: 12,
     fecha_inicio: format(new Date(), 'yyyy-MM-dd'),
     cobrador_id: '',
+    tasa_mora_diaria: undefined,
   })
 
   useEffect(() => {
@@ -84,7 +85,11 @@ export default function PrestamosNuevo() {
     setSaving(true)
     setError(null)
     try {
-      const payload = { ...form, cobrador_id: form.cobrador_id || null }
+      const payload = {
+      ...form,
+      cobrador_id: form.cobrador_id || null,
+      tasa_mora_diaria: form.tasa_mora_diaria || null,
+    }
       const p = await crearPrestamo(payload)
       navigate(`/prestamos/${p.id}`)
     } catch (e) {
@@ -158,6 +163,22 @@ export default function PrestamosNuevo() {
                 <input type="date" value={form.fecha_inicio} onChange={setField('fecha_inicio')}
                   className="field-input" />
               </div>
+            </div>
+
+            {/* Tasa mora personalizada */}
+            <div>
+              <label className="field-label">Tasa mora diaria % (opcional)</label>
+              <input
+                type="number"
+                value={form.tasa_mora_diaria ?? ''}
+                onChange={e => setForm(f => ({ ...f, tasa_mora_diaria: e.target.value ? Number(e.target.value) : undefined }))}
+                min="0" step="0.01" max="10"
+                placeholder="Usa config global si se deja vacío"
+                className="field-input"
+              />
+              <p style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>
+                Sobreescribe la tasa de mora global solo para este préstamo.
+              </p>
             </div>
 
             <button onClick={calcular} disabled={loadingPreview}

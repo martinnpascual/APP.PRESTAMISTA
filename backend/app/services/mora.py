@@ -81,7 +81,7 @@ def procesar_mora() -> dict:
     #    ya están en mora (para actualizar dias_mora y recargo acumulado diariamente)
     cuotas_r = (
         supabase.table("cuotas")
-        .select("*, prestamos!inner(id, estado, cobrador_id, cliente_id, saldo_pendiente)")
+        .select("*, prestamos!inner(id, estado, cobrador_id, cliente_id, saldo_pendiente, tasa_mora_diaria)")
         .in_("estado", ["pendiente", "pago_parcial", "mora"])
         .lt("fecha_vencimiento", hoy.isoformat())
         .execute()
@@ -141,8 +141,13 @@ def _procesar_cuota(
     if saldo_cuota <= 0:
         return  # Cuota saldada (rara vez llega aquí por el filtro de estado)
 
+    # Tasa del préstamo sobreescribe la global si está configurada
+    prestamo = cuota.get("prestamos", {})
+    tasa_prestamo = prestamo.get("tasa_mora_diaria")
+    tasa_efectiva = float(tasa_prestamo) if tasa_prestamo is not None else tasa_mora_diaria
+
     # Interés simple: saldo × tasa_diaria% × días
-    recargo = round(saldo_cuota * (tasa_mora_diaria / 100) * dias_mora, 2)
+    recargo = round(saldo_cuota * (tasa_efectiva / 100) * dias_mora, 2)
 
     # Actualizar cuota
     supabase.table("cuotas").update({

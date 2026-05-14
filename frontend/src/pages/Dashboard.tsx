@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiGet } from '../services/api'
+import { supabase } from '../lib/supabase'
 import type { KPIs, Prestamo, PaginatedResponse } from '../types'
 import Spinner from '../components/ui/Spinner'
 
@@ -115,15 +116,42 @@ export default function Dashboard() {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState<string | null>(null)
   const [search,    setSearch]    = useState('')
+  const [realtimeActive, setRealtimeActive] = useState(false)
+  const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    Promise.all([
+  const cargarDatos = useCallback(async () => {
+    await Promise.all([
       apiGet<KPIs>('/reportes/kpis').then(setKpis).catch(e => setError(e.message)),
       apiGet<PaginatedResponse<Prestamo>>('/prestamos?per_page=5&estado=activo,en_mora')
         .then(d => setRecientes(d?.items ?? []))
         .catch(() => {}),
-    ]).finally(() => setLoading(false))
+    ])
   }, [])
+
+  useEffect(() => {
+    cargarDatos().finally(() => setLoading(false))
+
+    // Supabase Realtime — escucha cambios en prestamos y pagos
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prestamos' }, () => {
+        // Debounce: evitar refresco múltiple por rafaga de cambios
+        if (refreshTimeout.current) clearTimeout(refreshTimeout.current)
+        refreshTimeout.current = setTimeout(() => cargarDatos(), 800)
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagos' }, () => {
+        if (refreshTimeout.current) clearTimeout(refreshTimeout.current)
+        refreshTimeout.current = setTimeout(() => cargarDatos(), 800)
+      })
+      .subscribe((status) => {
+        setRealtimeActive(status === 'SUBSCRIBED')
+      })
+
+    return () => {
+      if (refreshTimeout.current) clearTimeout(refreshTimeout.current)
+      supabase.removeChannel(channel)
+    }
+  }, [cargarDatos])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,6 +184,10 @@ export default function Dashboard() {
           </h1>
           <span style={{ background: 'rgba(99,102,241,.15)', color: '#a5b4fc', fontSize: '11px', fontWeight: 700, borderRadius: '99px', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <IcoTrend /> +12.5% vs mes anterior
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', color: realtimeActive ? '#4ade80' : '#6b7280', fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: realtimeActive ? '#22c55e' : '#374151', boxShadow: realtimeActive ? '0 0 5px rgba(34,197,94,.6)' : 'none', display: 'inline-block' }} />
+            {realtimeActive ? 'EN VIVO' : 'conectando...'}
           </span>
         </div>
         <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', fontWeight: 400 }}>

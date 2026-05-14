@@ -50,6 +50,7 @@ class PrestamoIn(PrestamoCalcularIn):
     cobrador_id: UUID | None = None
     fecha_inicio: date                  # requerida al crear
     notas: str | None = None
+    tasa_mora_diaria: Decimal | None = None  # sobreescribe config global si se especifica
 
 
 class CambiarEstadoIn(BaseModel):
@@ -103,6 +104,9 @@ class PrestamoOut(BaseModel):
     notas: str | None = None
     activo: bool = True
     created_at: datetime | None = None
+    tasa_mora_diaria: float | None = None
+    refinanciado_de: str | None = None
+    portal_token: str | None = None
     cuotas: list[CuotaOut] = []
 
     model_config = {"from_attributes": True}

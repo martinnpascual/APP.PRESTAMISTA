@@ -19,6 +19,7 @@ import Reportes from './pages/Reportes'
 import Usuarios from './pages/Usuarios'
 import Configuracion from './pages/Configuracion'
 import Notificaciones from './pages/Notificaciones'
+import PortalDeudor from './pages/PortalDeudor'
 
 export default function App() {
   const { initialize, initialized } = useAuthStore()
@@ -32,8 +33,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Pública */}
+        {/* Públicas (sin auth) */}
         <Route path="/login" element={<Login />} />
+        <Route path="/portal/:token" element={<PortalDeudor />} />
 
         {/* Protegidas — con Layout */}
         <Route
