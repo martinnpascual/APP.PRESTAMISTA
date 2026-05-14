@@ -70,6 +70,10 @@ export default function PrestamoDetalle() {
   const [refSaving, setRefSaving] = useState(false)
   const [refError, setRefError] = useState<string | null>(null)
 
+  // Portal del deudor
+  const [genPortal, setGenPortal] = useState(false)
+  const [portalLink, setPortalLink] = useState<string | null>(null)
+
   useEffect(() => {
     if (id) {
       fetchPrestamo(id)
@@ -190,8 +194,17 @@ export default function PrestamoDetalle() {
 
   const renovarPrestamo = () => {
     if (!prestamoActual) return
-    // Navegar a nuevo préstamo pre-llenando cliente
     navigate(`/prestamos/nuevo?cliente_id=${prestamoActual.cliente_id}`)
+  }
+
+  const generarPortalLink = async () => {
+    if (!id) return
+    setGenPortal(true)
+    try {
+      const res = await apiPost<{ link: string; expira: string }>(`/prestamos/${id}/portal-token`)
+      setPortalLink(res.link)
+    } catch (e) { alert((e as Error).message) }
+    finally { setGenPortal(false) }
   }
 
   const refinanciar = async () => {
@@ -317,7 +330,25 @@ export default function PrestamoDetalle() {
             ➕ Nuevo préstamo
           </button>
         )}
+        {isAdmin && (
+          <button onClick={generarPortalLink} disabled={genPortal}
+            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+            title="Generar enlace para que el deudor vea su estado de cuenta">
+            🔗 Enlace deudor
+          </button>
+        )}
       </div>
+
+      {/* Portal link */}
+      {portalLink && (
+        <div style={{ marginBottom: 16, background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.2)', borderRadius: 12, padding: '12px 14px' }}>
+          <p style={{ fontSize: 11.5, fontWeight: 700, color: '#a5b4fc', margin: '0 0 6px' }}>🔗 Enlace del portal del deudor (válido 30 días)</p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input readOnly value={portalLink} style={{ flex: 1, fontSize: 12, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '6px 10px', color: '#e8eaf0', outline: 'none' }} onClick={e => (e.target as HTMLInputElement).select()} />
+            <button onClick={() => navigator.clipboard.writeText(portalLink)} style={{ background: 'rgba(99,102,241,.2)', border: 'none', borderRadius: 8, padding: '6px 12px', color: '#a5b4fc', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Copiar</button>
+          </div>
+        </div>
+      )}
 
       {/* Cuotas */}
       <h2 className="mb-2 text-sm font-semibold text-gray-800">

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeftIcon, PencilSquareIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { apiGet } from '../services/api'
+import api from '../services/api'
 import { useClientesStore } from '../stores/clientesStore'
 import Spinner from '../components/ui/Spinner'
 import Alert from '../components/ui/Alert'
@@ -22,6 +23,9 @@ export default function ClienteDetalle() {
   const navigate = useNavigate()
   const { clienteActual, fetchCliente, loading, error, limpiarError } = useClientesStore()
   const [prestamos, setPrestamos] = useState<Prestamo[]>([])
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [uploadingFoto, setUploadingFoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (id) {
@@ -31,6 +35,31 @@ export default function ClienteDetalle() {
         .catch(() => {})
     }
   }, [id, fetchCliente])
+
+  useEffect(() => {
+    if (clienteActual) {
+      setFotoUrl((clienteActual as any).foto_url ?? null)
+    }
+  }, [clienteActual])
+
+  const handleFotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+    setUploadingFoto(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await api.post<{ data: { foto_url: string } }>(`/clientes/${id}/foto`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setFotoUrl(res.data.data.foto_url)
+    } catch {
+      // silencioso — el error aparece en la consola
+    } finally {
+      setUploadingFoto(false)
+      e.target.value = ''
+    }
+  }
 
   if (loading) return <div className="flex justify-center py-10"><Spinner size="lg" /></div>
   if (!clienteActual) return <div className="p-6 text-center text-gray-400">Cliente no encontrado</div>
@@ -45,6 +74,34 @@ export default function ClienteDetalle() {
           <button onClick={() => navigate(-1)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
+
+          {/* Avatar con foto */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', cursor: 'pointer',
+                background: 'linear-gradient(135deg,rgba(99,102,241,.25),rgba(139,92,246,.15))',
+                border: '2px solid rgba(99,102,241,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, fontWeight: 800, color: '#a5b4fc',
+              }}
+              title="Clic para cambiar foto"
+            >
+              {fotoUrl
+                ? <img src={fotoUrl} alt={c.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : c.nombre.charAt(0).toUpperCase()
+              }
+              {uploadingFoto && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ animation: 'spin .8s linear infinite' }}>
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity=".3"/><path d="M21 12a9 9 0 00-9-9"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFotoChange} />
+          </div>
+
           <div>
             <h1 className="text-xl font-bold text-gray-900">{c.nombre}</h1>
             <p className="text-xs text-gray-500">DNI {c.dni}</p>

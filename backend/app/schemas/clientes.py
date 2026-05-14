@@ -58,6 +58,7 @@ class ClienteOut(BaseModel):
     direccion: str
     zona: str
     notas: str | None = None
+    foto_url: str | None = None
     activo: bool
     created_at: datetime
 

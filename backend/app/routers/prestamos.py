@@ -250,13 +250,11 @@ async def refinanciar_prestamo(
         supabase.table("cuotas").update({"estado": "condonada"}).eq("id", c["id"]).execute()
 
     # 2. Crear nuevas cuotas desde hoy
-    from datetime import date
-    from app.services.calculadora import calcular_cuotas
-    from app.schemas.prestamos import Periodicidad
     from decimal import Decimal
 
     nueva_fecha = date.today()
-    nuevas_cuotas = calcular_cuotas(
+    from app.services.calculadora import calcular_prestamo
+    resultado = calcular_prestamo(
         monto=Decimal(str(saldo)),
         tasa=Decimal(str(tasa)),
         tipo_tasa=prestamo["tipo_tasa"],
@@ -264,6 +262,7 @@ async def refinanciar_prestamo(
         n_cuotas=n_cuotas,
         fecha_inicio=nueva_fecha,
     )
+    nuevas_cuotas = resultado.cuotas
 
     # Determinar número de cuota siguiente
     max_num_r = (supabase.table("cuotas")
@@ -324,6 +323,40 @@ async def refinanciar_prestamo(
         pass
 
     return ok({"prestamo_id": prestamo_id, "nuevas_cuotas": n_cuotas, "saldo": saldo})
+
+
+# ---------------------------------------------------------------------------
+# POST /prestamos/{id}/portal-token — Generar enlace para portal del deudor
+# ---------------------------------------------------------------------------
+@router.post(
+    "/{prestamo_id}/portal-token",
+    response_model=ApiResponse[dict],
+    summary="Generar enlace público para el portal del deudor (admin)",
+)
+async def generar_portal_token(
+    prestamo_id: str,
+    user: AuthUser = Depends(require_admin),
+):
+    """
+    Genera un token único para que el deudor vea su estado de cuenta
+    sin necesidad de login. El token expira en 30 días.
+    """
+    import secrets
+    from datetime import datetime, timedelta, timezone
+
+    supabase = get_supabase()
+    token = secrets.token_urlsafe(32)
+    exp = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+
+    supabase.table("prestamos").update({
+        "portal_token": token,
+        "portal_token_exp": exp,
+    }).eq("id", prestamo_id).execute()
+
+    base_url = supabase.supabase_url.replace("supabase.co", "prestamos.app") or "https://prestamos.app"
+    link = f"{base_url}/portal/{token}"
+
+    return ok({"token": token, "link": link, "expira": exp})
 
 
 # ---------------------------------------------------------------------------
